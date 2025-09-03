@@ -2,6 +2,10 @@ package com.example.ReadMark.entity;
 
 import static com.querydsl.core.types.PathMetadataFactory.*;
 
+import com.example.ReadMark.model.dto.entity.Book;
+import com.example.ReadMark.model.dto.entity.FavoritePage;
+import com.example.ReadMark.model.dto.entity.FavoriteQuote;
+import com.example.ReadMark.model.dto.entity.UserBook;
 import com.querydsl.core.types.dsl.*;
 
 import com.querydsl.core.types.PathMetadata;

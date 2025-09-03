@@ -1,14 +1,21 @@
 package com.example.ReadMark.repository;
 
-import com.example.ReadMark.entity.ReadingLog;
-import com.example.ReadMark.entity.User;
+import com.example.ReadMark.model.entity.ReadingLog;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
-@Repository
-public interface ReadingLogRepository extends JpaRepository<ReadingLog, Long> {
-    List<ReadingLog> findByUserAndReadDateBetween(User user, LocalDate from, LocalDate to);
-    List<ReadingLog> findByUser(User user);
+public interface ReadingLogRepository extends JpaRepository<ReadingLog, Long>, ReadingLogRepositoryCustom {
+    
+    List<ReadingLog> findByUserIdAndReadDateBetween(Long userId, LocalDate startDate, LocalDate endDate);
+    
+    @Query("SELECT rl FROM ReadingLog rl WHERE rl.user.userId = :userId AND rl.readDate = :date")
+    Optional<ReadingLog> findByUserIdAndDate(@Param("userId") Long userId, @Param("date") LocalDate date);
+    
+    @Query("SELECT SUM(rl.pagesRead) FROM ReadingLog rl WHERE rl.user.userId = :userId AND rl.readDate = :date")
+    Integer sumPagesReadByUserIdAndDate(@Param("userId") Long userId, @Param("date") LocalDate date);
 }

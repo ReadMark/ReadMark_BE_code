@@ -1,53 +1,54 @@
 package com.example.ReadMark.service;
 
-import com.example.ReadMark.entity.Book;
 import com.example.ReadMark.model.dto.BookDTO;
+import com.example.ReadMark.model.entity.Book;
 import com.example.ReadMark.repository.BookRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
+@Transactional
 public class BookService {
-
-    @Autowired
-    private BookRepository bookRepository;
-
-    // 책 생성
-    public Book createBook(BookDTO dto) {
+    
+    private final BookRepository bookRepository;
+    
+    public Book createBook(BookDTO bookDTO) {
         Book book = new Book();
-        book.setTitle(dto.getTitle());
-        book.setAuthor(dto.getAuthor());
-        book.setPublisher(dto.getPublisher());
-        book.setCoverImageUrl(dto.getCoverImageUrl());
-        book.setPublishedAt(dto.getPublishedAt());
+        book.setTitle(bookDTO.getTitle());
+        book.setAuthor(bookDTO.getAuthor());
+        book.setPublisher(bookDTO.getPublisher());
+        book.setCoverImageUrl(bookDTO.getCoverImageUrl());
+        book.setPublishedAt(bookDTO.getPublishedAt());
+        
         return bookRepository.save(book);
     }
-
-    // 전체 책 조회
-    public List<Book> getAllBooks() {
-        return bookRepository.findAll();
+    
+    public List<BookDTO> searchBooks(String keyword) {
+        List<Book> books = bookRepository.findBooksByKeyword(keyword);
+        return books.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
     }
-
-    // 책 업데이트
-    public Book updateBook(Long id, BookDTO dto) {
-        Optional<Book> optionalBook = bookRepository.findById(id);
-        if (optionalBook.isPresent()) {
-            Book book = optionalBook.get();
-            book.setTitle(dto.getTitle());
-            book.setAuthor(dto.getAuthor());
-            book.setPublisher(dto.getPublisher());
-            book.setCoverImageUrl(dto.getCoverImageUrl());
-            book.setPublishedAt(dto.getPublishedAt());
-            return bookRepository.save(book);
-        }
-        return null;
+    
+    public Optional<Book> findByTitleAndAuthor(String title, String author) {
+        return bookRepository.findByTitleAndAuthor(title, author);
     }
-
-    // 책 삭제
-    public void deleteBook(Long id) {
-        bookRepository.deleteById(id);
+    
+    public BookDTO convertToDTO(Book book) {
+        BookDTO dto = new BookDTO();
+        dto.setBookId(book.getBookId());
+        dto.setTitle(book.getTitle());
+        dto.setAuthor(book.getAuthor());
+        dto.setPublisher(book.getPublisher());
+        dto.setCoverImageUrl(book.getCoverImageUrl());
+        dto.setPublishedAt(book.getPublishedAt());
+        return dto;
     }
 }

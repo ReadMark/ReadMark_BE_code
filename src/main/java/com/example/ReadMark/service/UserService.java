@@ -1,63 +1,45 @@
 package com.example.ReadMark.service;
 
-import com.example.ReadMark.entity.User;
-import com.example.ReadMark.model.dto.UserDTO;
-import com.example.ReadMark.model.dto.LoginRequestDTO;
-import com.example.ReadMark.model.dto.LoginResponseDTO;
+import com.example.ReadMark.model.dto.UserJoinDTO;
+import com.example.ReadMark.model.dto.UserLoginDTO;
+import com.example.ReadMark.model.entity.User;
 import com.example.ReadMark.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
+@Transactional
 public class UserService {
-
-    @Autowired
-    private UserRepository userRepository;
-
-    // 사용자 생성
-    public User createUser(UserDTO dto) {
+    
+    private final UserRepository userRepository;
+    
+    public User join(UserJoinDTO joinDTO) {
+        // 이메일 중복 체크
+        if (userRepository.existsByEmail(joinDTO.getEmail())) {
+            throw new RuntimeException("이미 존재하는 이메일입니다.");
+        }
+        
         User user = new User();
-        user.setName(dto.getName());
-        user.setEmail(dto.getEmail());
-        user.setPassword(dto.getPassword());
+        user.setName(joinDTO.getName());
+        user.setEmail(joinDTO.getEmail());
+        user.setPassword(joinDTO.getPassword()); // 실제로는 암호화 필요
+        
         return userRepository.save(user);
     }
-
-    // 전체 사용자 조회
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
+    
+    public Optional<User> login(UserLoginDTO loginDTO) {
+        return userRepository.findByEmailAndPassword(loginDTO.getEmail(), loginDTO.getPassword());
     }
-
-    // 사용자 업데이트
-    public User updateUser(Long id, UserDTO dto) {
-        Optional<User> optionalUser = userRepository.findById(id);
-        if (optionalUser.isPresent()) {
-            User user = optionalUser.get();
-            user.setName(dto.getName());
-            user.setEmail(dto.getEmail());
-            user.setPassword(dto.getPassword());
-            return userRepository.save(user);
-        }
-        return null;
+    
+    public Optional<User> findByEmail(String email) {
+        return userRepository.findByEmail(email);
     }
-
-    // 사용자 삭제
-    public void deleteUser(Long id) {
-        userRepository.deleteById(id);
-    }
-
-    // 로그인 (단순 비교, 암호화/인증 미사용)
-    public LoginResponseDTO login(LoginRequestDTO request) {
-        Optional<User> optional = userRepository.findByEmail(request.getEmail());
-        if (optional.isPresent()) {
-            User user = optional.get();
-            if (user.getPassword().equals(request.getPassword())) {
-                return new LoginResponseDTO(user.getUserId(), user.getName(), user.getEmail());
-            }
-        }
-        return null;
+    
+    public Optional<User> findByEmailWithUserBooks(String email) {
+        return userRepository.findByEmailWithUserBooks(email);
     }
 }

@@ -1,8 +1,8 @@
 package com.example.ReadMark.model.dto;
 
-import com.example.ReadMark.entity.FavoritePage;
-import com.example.ReadMark.entity.FavoriteQuote;
-import com.example.ReadMark.entity.UserBook;
+import com.example.ReadMark.model.entity.FavoritePage;
+import com.example.ReadMark.model.entity.FavoriteQuote;
+import com.example.ReadMark.model.entity.UserBook;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -34,5 +34,4 @@ public class MyPageResponseDTO {
 	private List<UserBook> wannaReadBooks;
 	private List<UserBook> readDoneBooks;
 }
-
 

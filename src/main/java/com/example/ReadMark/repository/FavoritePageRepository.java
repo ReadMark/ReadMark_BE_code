@@ -1,11 +1,14 @@
 package com.example.ReadMark.repository;
 
-import com.example.ReadMark.entity.FavoritePage;
+import com.example.ReadMark.model.entity.FavoritePage;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
 import java.util.List;
 
-@Repository
-public interface FavoritePageRepository extends JpaRepository<FavoritePage, Long> {
-    List<FavoritePage> findByUser_UserId(Long userId);
+public interface FavoritePageRepository extends JpaRepository<FavoritePage, Long>, FavoritePageRepositoryCustom {
+    
+    @Query("SELECT fp FROM FavoritePage fp WHERE fp.user.userId = :userId")
+    List<FavoritePage> findByUserId(@Param("userId") Long userId);
 }

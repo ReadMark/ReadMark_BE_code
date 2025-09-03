@@ -4,13 +4,15 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
 public class ReadingLogDTO {
-	private Long userId;
-	private LocalDate readDate;
-	private int pagesRead;
+    private Long logId;
+    private LocalDate readDate;
+    private int pagesRead;
+    private LocalDateTime createdAt;
 }
 
 

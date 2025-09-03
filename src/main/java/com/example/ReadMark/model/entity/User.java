@@ -1,4 +1,4 @@
-package com.example.ReadMark.entity;
+package com.example.ReadMark.model.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;

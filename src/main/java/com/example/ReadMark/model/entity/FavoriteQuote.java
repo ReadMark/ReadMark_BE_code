@@ -1,27 +1,30 @@
-package com.example.ReadMark.entity;
+package com.example.ReadMark.model.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "Reading_Log")
+@Table(name = "Favorite_Quote")
 @Getter
 @Setter
-public class ReadingLog {
+public class FavoriteQuote {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long logId;
+    private Long favQuoteId;
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    private LocalDate readDate;
-    private int pagesRead = 0;
+    @ManyToOne
+    @JoinColumn(name = "book_id", nullable = false)
+    private Book book;
+
+    private Integer pageNumber;
+    private String content;
     private LocalDateTime createdAt;
 
     @PrePersist
