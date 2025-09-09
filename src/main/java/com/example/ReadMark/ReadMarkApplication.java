@@ -4,10 +4,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class ReamMarkApplication {
+public class ReadMarkApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(ReamMarkApplication.class, args);
+		SpringApplication.run(ReadMarkApplication.class, args);
 	}
 
 }

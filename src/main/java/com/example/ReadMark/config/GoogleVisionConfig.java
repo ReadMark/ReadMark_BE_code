@@ -29,7 +29,7 @@ public class GoogleVisionConfig {
             // 환경 변수에서 인증 정보를 읽어옵니다.
             // GOOGLE_APPLICATION_CREDENTIALS 환경 변수를 설정해야 합니다.
             ImageAnnotatorClient client = ImageAnnotatorClient.create();
-            log.info("Google Vision API 클라이언트가 성공적으로 생성되었습니다.");
+            log.info("Google Vision API 클라이언트가 성공적으로 생성되었습니다. Project ID: {}", projectId);
             return client;
         } catch (IOException e) {
             log.error("Google Vision API 클라이언트 생성 실패", e);

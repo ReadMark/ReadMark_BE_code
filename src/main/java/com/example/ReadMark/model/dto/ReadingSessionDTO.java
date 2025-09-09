@@ -15,7 +15,7 @@ public class ReadingSessionDTO {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private Integer totalPagesRead;
-    private Integer totalWordsRead;
+    private Integer totalNumbersRead;
     private Long readingDurationMinutes;
     private String sessionNotes;
     

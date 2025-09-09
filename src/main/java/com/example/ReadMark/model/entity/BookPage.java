@@ -7,7 +7,7 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "BookPage")
+@Table(name = "book_pages")
 @Getter
 @Setter
 public class BookPage {
@@ -17,11 +17,11 @@ public class BookPage {
     private Long pageId;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "bookId", nullable = false)
+    @JoinColumn(name = "book_id", nullable = false)
     private Book book;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "userId", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
     
     @Column(nullable = false)
@@ -33,6 +33,8 @@ public class BookPage {
     @Column(length = 500)
     private String imageUrl;
     
+    @Lob
+    @Column(columnDefinition = "BLOB")
     private byte[] imageData;
     
     @Column(nullable = false)
@@ -49,7 +51,7 @@ public class BookPage {
     @Column(length = 20)
     private String language;
     
-    private Integer wordCount;
+    private Integer numberCount;
     
     private Double textQuality;
     

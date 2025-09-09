@@ -1,8 +1,7 @@
-package com.example.ReadMark.entity;
+package com.example.ReadMark.model.entity;
 
 import static com.querydsl.core.types.PathMetadataFactory.*;
 
-import com.example.ReadMark.model.dto.entity.FavoriteQuote;
 import com.querydsl.core.types.dsl.*;
 
 import com.querydsl.core.types.PathMetadata;
@@ -12,46 +11,44 @@ import com.querydsl.core.types.dsl.PathInits;
 
 
 /**
- * QFavoriteQuote is a Querydsl query type for FavoriteQuote
+ * QFavoritePage is a Querydsl query type for FavoritePage
  */
 @Generated("com.querydsl.codegen.DefaultEntitySerializer")
-public class QFavoriteQuote extends EntityPathBase<FavoriteQuote> {
+public class QFavoritePage extends EntityPathBase<FavoritePage> {
 
-    private static final long serialVersionUID = -140865905L;
+    private static final long serialVersionUID = -1320756905L;
 
     private static final PathInits INITS = PathInits.DIRECT2;
 
-    public static final QFavoriteQuote favoriteQuote = new QFavoriteQuote("favoriteQuote");
+    public static final QFavoritePage favoritePage = new QFavoritePage("favoritePage");
 
     public final QBook book;
 
-    public final StringPath content = createString("content");
-
     public final DateTimePath<java.time.LocalDateTime> createdAt = createDateTime("createdAt", java.time.LocalDateTime.class);
 
-    public final NumberPath<Long> favQuoteId = createNumber("favQuoteId", Long.class);
+    public final NumberPath<Long> favPageId = createNumber("favPageId", Long.class);
 
     public final NumberPath<Integer> pageNumber = createNumber("pageNumber", Integer.class);
 
     public final QUser user;
 
-    public QFavoriteQuote(String variable) {
-        this(FavoriteQuote.class, forVariable(variable), INITS);
+    public QFavoritePage(String variable) {
+        this(FavoritePage.class, forVariable(variable), INITS);
     }
 
-    public QFavoriteQuote(Path<? extends FavoriteQuote> path) {
+    public QFavoritePage(Path<? extends FavoritePage> path) {
         this(path.getType(), path.getMetadata(), PathInits.getFor(path.getMetadata(), INITS));
     }
 
-    public QFavoriteQuote(PathMetadata metadata) {
+    public QFavoritePage(PathMetadata metadata) {
         this(metadata, PathInits.getFor(metadata, INITS));
     }
 
-    public QFavoriteQuote(PathMetadata metadata, PathInits inits) {
-        this(FavoriteQuote.class, metadata, inits);
+    public QFavoritePage(PathMetadata metadata, PathInits inits) {
+        this(FavoritePage.class, metadata, inits);
     }
 
-    public QFavoriteQuote(Class<? extends FavoriteQuote> type, PathMetadata metadata, PathInits inits) {
+    public QFavoritePage(Class<? extends FavoritePage> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
         this.book = inits.isInitialized("book") ? new QBook(forProperty("book")) : null;
         this.user = inits.isInitialized("user") ? new QUser(forProperty("user")) : null;

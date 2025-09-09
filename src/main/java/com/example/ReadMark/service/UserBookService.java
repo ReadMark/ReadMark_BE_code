@@ -1,5 +1,6 @@
 package com.example.ReadMark.service;
 
+import com.example.ReadMark.model.dto.BookDTO;
 import com.example.ReadMark.model.dto.UserBookDTO;
 import com.example.ReadMark.model.entity.Book;
 import com.example.ReadMark.model.entity.User;
@@ -26,6 +27,10 @@ public class UserBookService {
     private final BookRepository bookRepository;
     
     public UserBook addBookToUser(Long userId, Long bookId, Status status) {
+        return addBookToUser(userId, bookId, status, 0);
+    }
+    
+    public UserBook addBookToUser(Long userId, Long bookId, Status status, Integer currentPage) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
         
@@ -36,7 +41,7 @@ public class UserBookService {
         userBook.setUser(user);
         userBook.setBook(book);
         userBook.setStatus(status);
-        userBook.setCurrentPage(0);
+        userBook.setCurrentPage(currentPage != null ? currentPage : 0);
         
         return userBookRepository.save(userBook);
     }

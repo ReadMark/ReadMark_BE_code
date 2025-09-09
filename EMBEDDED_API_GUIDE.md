@@ -103,16 +103,61 @@ curl -X POST "http://localhost:8080/api/image/upload" \
 }
 ```
 
-### 5. 특정 페이지 조회
+### 5. 독서 통계 조회
+**GET** `/api/image/stats/{userId}`
+
+#### 응답 예시
+```json
+{
+  "success": true,
+  "stats": {
+    "maxConsecutiveDays": 7,
+    "totalReadingDays": 15,
+    "currentConsecutiveDays": 3,
+    "habitAnalysis": {
+      "preferredTime": "저녁",
+      "averageReadingTime": 45,
+      "mostReadGenre": "소설"
+    }
+  }
+}
+```
+
+### 6. 월별 독서 통계 조회
+**GET** `/api/image/stats/{userId}/monthly?months=6`
+
+#### 요청 파라미터
+- `months` (선택): 조회할 월 수 (기본값: 6)
+
+#### 응답 예시
+```json
+{
+  "success": true,
+  "monthlyStats": {
+    "2024-01": {
+      "totalPages": 45,
+      "totalWords": 7200,
+      "readingDays": 12
+    },
+    "2024-02": {
+      "totalPages": 38,
+      "totalWords": 6080,
+      "readingDays": 10
+    }
+  }
+}
+```
+
+### 7. 특정 페이지 조회
 **GET** `/api/image/pages/{userId}/{bookId}/{pageNumber}`
 
-### 6. 페이지 범위 조회
+### 8. 페이지 범위 조회
 **GET** `/api/image/pages/{userId}/{bookId}/range?startPage=1&endPage=10`
 
-### 7. 최근 페이지 조회
+### 9. 최근 페이지 조회
 **GET** `/api/image/pages/{userId}/{bookId}/recent?limit=10`
 
-### 8. 페이지 삭제
+### 10. 페이지 삭제
 **DELETE** `/api/image/pages/{userId}/{bookId}/{pageNumber}`
 
 ## 📱 임베디드 기기 구현 예시
@@ -165,10 +210,67 @@ class ReadMarkClient:
                 print(f"HTTP 오류: {response.status_code}")
                 
         return None
+    
+    def start_reading_session(self):
+        """독서 세션을 시작합니다."""
+        data = {
+            'userId': self.user_id,
+            'bookId': self.book_id
+        }
+        
+        response = requests.post(
+            f"{self.base_url}/api/image/session/start",
+            data=data
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            if result['success']:
+                print(f"독서 세션 시작: ID {result['sessionId']}")
+                return result
+        return None
+    
+    def end_reading_session(self):
+        """독서 세션을 종료합니다."""
+        data = {'userId': self.user_id}
+        
+        response = requests.post(
+            f"{self.base_url}/api/image/session/end",
+            data=data
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            if result['success']:
+                print(f"독서 세션 종료: {result['totalPagesRead']}페이지 읽음")
+                return result
+        return None
+    
+    def get_reading_stats(self):
+        """독서 통계를 조회합니다."""
+        response = requests.get(
+            f"{self.base_url}/api/image/stats/{self.user_id}"
+        )
+        
+        if response.status_code == 200:
+            return response.json()
+        return None
 
 # 사용 예시
 client = ReadMarkClient("http://localhost:8080", 1, 1)
+
+# 독서 세션 시작
+client.start_reading_session()
+
+# 페이지 촬영 및 업로드
 client.capture_and_upload_page()
+
+# 독서 통계 조회
+stats = client.get_reading_stats()
+print(f"총 독서일: {stats['stats']['totalReadingDays']}일")
+
+# 독서 세션 종료
+client.end_reading_session()
 ```
 
 ### Arduino (ESP32-CAM)
@@ -201,6 +303,36 @@ void setup() {
     Serial.printf("카메라 초기화 실패: 0x%x", err);
     return;
   }
+}
+
+void startReadingSession() {
+  HTTPClient http;
+  http.begin(serverUrl + "/api/image/session/start");
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  
+  String postData = "userId=1&bookId=1";
+  int httpResponseCode = http.POST(postData);
+  
+  if (httpResponseCode > 0) {
+    String response = http.getString();
+    Serial.println("독서 세션 시작: " + response);
+  }
+  http.end();
+}
+
+void endReadingSession() {
+  HTTPClient http;
+  http.begin(serverUrl + "/api/image/session/end");
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  
+  String postData = "userId=1";
+  int httpResponseCode = http.POST(postData);
+  
+  if (httpResponseCode > 0) {
+    String response = http.getString();
+    Serial.println("독서 세션 종료: " + response);
+  }
+  http.end();
 }
 
 void captureAndUpload() {

@@ -23,10 +23,12 @@ public class ReadingLogController {
     private final ReadingLogService readingLogService;
     
     @PostMapping
-    public ResponseEntity<?> createReadingLog(@RequestParam Long userId,
-                                            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate readDate,
-                                            @RequestParam int pagesRead) {
+    public ResponseEntity<?> createReadingLog(@RequestBody Map<String, Object> request) {
         try {
+            Long userId = Long.valueOf(request.get("userId").toString());
+            LocalDate readDate = LocalDate.parse(request.get("readDate").toString());
+            int pagesRead = Integer.valueOf(request.get("pagesRead").toString());
+            
             ReadingLog readingLog = readingLogService.createReadingLog(userId, readDate, pagesRead);
             
             Map<String, Object> response = new HashMap<>();

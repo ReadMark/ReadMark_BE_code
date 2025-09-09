@@ -20,7 +20,7 @@ import java.util.Map;
 @RequestMapping("/api/image")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:8080"})
 public class ImageUploadController {
     
     private final GoogleVisionService visionService;
@@ -101,10 +101,8 @@ public class ImageUploadController {
             pageData.put("extractedText", bookPage.getExtractedText());
             pageData.put("confidence", bookPage.getConfidence());
             pageData.put("language", bookPage.getLanguage());
-            pageData.put("wordCount", bookPage.getWordCount());
+            pageData.put("numberCount", bookPage.getNumberCount());
             pageData.put("textQuality", bookPage.getTextQuality());
-            pageData.put("qualityLevel", bookPage.getQualityLevel());
-            pageData.put("confidenceLevel", bookPage.getConfidenceLevel());
             pageData.put("capturedAt", bookPage.getCapturedAt());
             
             response.put("success", true);
@@ -112,8 +110,8 @@ public class ImageUploadController {
             response.put("page", pageData);
             response.put("deviceInfo", deviceInfo);
             
-            log.info("책 페이지 저장 완료: 사용자 {}, 책 {}, 페이지 {}, 품질 {}", 
-                    userId, bookId, bookPage.getPageNumber(), bookPage.getQualityLevel());
+            log.info("책 페이지 저장 완료: 사용자 {}, 책 {}, 페이지 {}", 
+                    userId, bookId, bookPage.getPageNumber());
             
             return ResponseEntity.ok(response);
             
@@ -168,7 +166,7 @@ public class ImageUploadController {
                 response.put("success", true);
                 response.put("message", "독서 세션이 종료되었습니다.");
                 response.put("totalPagesRead", session.getTotalPagesRead());
-                response.put("totalWordsRead", session.getTotalWordsRead());
+                response.put("totalNumbersRead", session.getTotalNumbersRead());
                 response.put("readingDurationMinutes", session.getReadingDurationMinutes());
                 response.put("endTime", session.getEndTime());
             } else {

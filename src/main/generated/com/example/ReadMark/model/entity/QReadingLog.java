@@ -1,8 +1,7 @@
-package com.example.ReadMark.entity;
+package com.example.ReadMark.model.entity;
 
 import static com.querydsl.core.types.PathMetadataFactory.*;
 
-import com.example.ReadMark.model.dto.entity.ReadingLog;
 import com.querydsl.core.types.dsl.*;
 
 import com.querydsl.core.types.PathMetadata;
@@ -17,7 +16,7 @@ import com.querydsl.core.types.dsl.PathInits;
 @Generated("com.querydsl.codegen.DefaultEntitySerializer")
 public class QReadingLog extends EntityPathBase<ReadingLog> {
 
-    private static final long serialVersionUID = -1192209623L;
+    private static final long serialVersionUID = 693893924L;
 
     private static final PathInits INITS = PathInits.DIRECT2;
 
@@ -30,6 +29,8 @@ public class QReadingLog extends EntityPathBase<ReadingLog> {
     public final NumberPath<Integer> pagesRead = createNumber("pagesRead", Integer.class);
 
     public final DatePath<java.time.LocalDate> readDate = createDate("readDate", java.time.LocalDate.class);
+
+    public final NumberPath<Integer> readingDurationMinutes = createNumber("readingDurationMinutes", Integer.class);
 
     public final QUser user;
 

@@ -1,5 +1,6 @@
 package com.example.ReadMark.service;
 
+import com.example.ReadMark.model.dto.BookDTO;
 import com.example.ReadMark.model.dto.FavoritePageDTO;
 import com.example.ReadMark.model.dto.FavoriteQuoteDTO;
 import com.example.ReadMark.model.dto.UserStatsDTO;

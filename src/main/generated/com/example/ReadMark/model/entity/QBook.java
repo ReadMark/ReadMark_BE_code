@@ -1,11 +1,7 @@
-package com.example.ReadMark.entity;
+package com.example.ReadMark.model.entity;
 
 import static com.querydsl.core.types.PathMetadataFactory.*;
 
-import com.example.ReadMark.model.dto.entity.Book;
-import com.example.ReadMark.model.dto.entity.FavoritePage;
-import com.example.ReadMark.model.dto.entity.FavoriteQuote;
-import com.example.ReadMark.model.dto.entity.UserBook;
 import com.querydsl.core.types.dsl.*;
 
 import com.querydsl.core.types.PathMetadata;
@@ -20,7 +16,7 @@ import com.querydsl.core.types.dsl.PathInits;
 @Generated("com.querydsl.codegen.DefaultEntitySerializer")
 public class QBook extends EntityPathBase<Book> {
 
-    private static final long serialVersionUID = 1534422458L;
+    private static final long serialVersionUID = 1339125237L;
 
     public static final QBook book = new QBook("book");
 

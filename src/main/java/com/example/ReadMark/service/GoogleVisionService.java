@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 public class GoogleVisionService {
     
     /**
-     * 이미지에서 텍스트를 추출합니다.
+     * 이미지에서 숫자를 추출합니다.
      */
     public VisionAnalysisResultDTO extractTextFromImage(byte[] imageBytes) {
         VisionAnalysisResultDTO result = new VisionAnalysisResultDTO();
@@ -33,10 +33,20 @@ public class GoogleVisionService {
                 // 이미지 객체 생성
                 Image img = Image.newBuilder().setContent(imgBytes).build();
                 
-                // 텍스트 감지 요청 생성
-                Feature feat = Feature.newBuilder().setType(Feature.Type.TEXT_DETECTION).build();
+                // 텍스트 감지 요청 생성 (낮은 해상도 최적화)
+                Feature textFeat = Feature.newBuilder()
+                        .setType(Feature.Type.TEXT_DETECTION)
+                        .setMaxResults(50) // 더 많은 결과 허용
+                        .build();
+                
+                Feature docFeat = Feature.newBuilder()
+                        .setType(Feature.Type.DOCUMENT_TEXT_DETECTION)
+                        .setMaxResults(10) // 문서 텍스트 감지도 추가
+                        .build();
+                
                 AnnotateImageRequest request = AnnotateImageRequest.newBuilder()
-                        .addFeatures(feat)
+                        .addFeatures(textFeat)
+                        .addFeatures(docFeat)
                         .setImage(img)
                         .build();
                 
@@ -55,31 +65,91 @@ public class GoogleVisionService {
                         return result;
                     }
                     
-                    // 텍스트 추출
+                    // 숫자 추출 (낮은 해상도 최적화)
                     StringBuilder fullText = new StringBuilder();
-                    List<String> words = new ArrayList<>();
+                    List<String> numbers = new ArrayList<>();
+                    double maxConfidence = 0.0;
                     
+                    // DOCUMENT_TEXT_DETECTION 결과 우선 사용 (낮은 해상도에서 더 정확)
+                    if (res.hasFullTextAnnotation()) {
+                        String documentText = res.getFullTextAnnotation().getText();
+                        fullText.append(documentText);
+                        
+                        // 숫자 패턴 추출 (1-5자리 숫자만)
+                        String numberPattern = "\\b\\d{1,5}\\b";
+                        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(numberPattern);
+                        java.util.regex.Matcher matcher = pattern.matcher(documentText);
+                        
+                        while (matcher.find()) {
+                            String number = matcher.group();
+                            if (!numbers.contains(number)) {
+                                numbers.add(number);
+                            }
+                        }
+                        
+                        log.info("문서 텍스트에서 추출된 숫자들: {}", numbers);
+                    }
+                    
+                    // 일반 TEXT_DETECTION 결과도 확인 (낮은 해상도 보완)
                     for (EntityAnnotation annotation : res.getTextAnnotationsList()) {
                         String text = annotation.getDescription();
+                        double confidence = annotation.getScore();
+                        
+                        if (confidence > maxConfidence) {
+                            maxConfidence = confidence;
+                        }
+                        
                         if (fullText.length() == 0) {
-                            // 첫 번째 annotation은 전체 텍스트
                             fullText.append(text);
-                        } else {
-                            // 나머지는 개별 단어들
-                            words.add(text);
+                        }
+                        
+                        // 숫자 패턴 재확인 (더 관대한 패턴 사용)
+                        String numberPattern = "\\d{1,5}"; // 단어 경계 제거로 더 많은 숫자 감지
+                        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(numberPattern);
+                        java.util.regex.Matcher matcher = pattern.matcher(text);
+                        
+                        while (matcher.find()) {
+                            String number = matcher.group();
+                            if (!numbers.contains(number)) {
+                                numbers.add(number);
+                            }
                         }
                     }
                     
                     result.setExtractedText(fullText.toString());
-                    result.setDetectedWords(words);
-                    result.setConfidence(0.9); // 기본 신뢰도
-                    result.setLanguage("ko"); // 한국어로 가정
+                    result.setDetectedNumbers(numbers); // 숫자만 저장
+                    result.setConfidence(maxConfidence > 0 ? maxConfidence : 0.8);
+                    result.setLanguage("ko");
                     result.setIsBookPage(true);
                     
-                    // 페이지 번호 추정 (텍스트에서 숫자 패턴 찾기)
-                    result.setEstimatedPageNumber(extractPageNumber(fullText.toString()));
+                    // 가장 좋은 숫자 선택 (낮은 해상도 최적화)
+                    if (!numbers.isEmpty()) {
+                        // 신뢰도가 높은 숫자 우선 선택
+                        String bestNumber = numbers.stream()
+                                .max((a, b) -> Integer.compare(a.length(), b.length())) // 더 긴 숫자 우선
+                                .orElse(numbers.get(0));
+                        
+                        try {
+                            // 4자리 숫자 예외처리: 맨 앞자리 1자 제거
+                            String processedNumber = bestNumber;
+                            if (bestNumber.length() == 4) {
+                                processedNumber = bestNumber.substring(1); // 맨 앞자리 제거
+                                log.info("4자리 숫자 감지: {} → {} (앞자리 제거)", bestNumber, processedNumber);
+                            }
+                            
+                            result.setEstimatedPageNumber(Integer.parseInt(processedNumber));
+                            log.info("인식된 숫자: {} → {} (총 {}개 발견, 신뢰도: {})", 
+                                    bestNumber, processedNumber, numbers.size(), maxConfidence);
+                        } catch (NumberFormatException e) {
+                            result.setEstimatedPageNumber(1);
+                            log.warn("숫자 파싱 실패: {}", bestNumber);
+                        }
+                    } else {
+                        result.setEstimatedPageNumber(1);
+                        log.warn("숫자를 찾을 수 없습니다. 추출된 텍스트: {}", fullText.toString());
+                    }
                     
-                    log.info("텍스트 추출 완료: {} 단어", words.size());
+                    log.info("숫자 추출 완료: {} 개", numbers.size());
                     
                 } else {
                     result.setErrorMessage("텍스트를 찾을 수 없습니다.");
@@ -99,144 +169,33 @@ public class GoogleVisionService {
     }
     
     /**
-     * 텍스트에서 페이지 번호를 추출합니다.
-     */
-    private Integer extractPageNumber(String text) {
-        if (text == null || text.trim().isEmpty()) {
-            return null;
-        }
-        
-        // 페이지 번호 패턴 찾기 (우선순위 순)
-        String[] patterns = {
-            // 명시적 페이지 표시
-            "p\\.\\s*(\\d+)",           // p.123
-            "페이지\\s*(\\d+)",          // 페이지 123
-            "(\\d+)\\s*페이지",          // 123페이지
-            "page\\s*(\\d+)",           // page 123
-            "(\\d+)\\s*page",           // 123 page
-            
-            // 챕터/절 표시
-            "제\\s*(\\d+)\\s*장",        // 제 1 장
-            "chapter\\s*(\\d+)",        // chapter 1
-            "chap\\.\\s*(\\d+)",        // chap. 1
-            
-            // 일반적인 숫자 (1-4자리, 페이지 번호로 추정)
-            "\\b(\\d{1,4})\\b"
-        };
-        
-        for (String pattern : patterns) {
-            java.util.regex.Pattern p = java.util.regex.Pattern.compile(pattern, 
-                java.util.regex.Pattern.CASE_INSENSITIVE);
-            java.util.regex.Matcher m = p.matcher(text);
-            if (m.find()) {
-                try {
-                    int pageNum = Integer.parseInt(m.group(1));
-                    
-                    // 페이지 번호로 적절한지 검증
-                    if (isValidPageNumber(pageNum, text)) {
-                        return pageNum;
-                    }
-                } catch (NumberFormatException e) {
-                    // 숫자 변환 실패 시 계속 진행
-                }
-            }
-        }
-        
-        return null;
-    }
-    
-    /**
-     * 추출된 숫자가 페이지 번호로 적절한지 검증합니다.
-     */
-    private boolean isValidPageNumber(int number, String text) {
-        // 0보다 커야 함
-        if (number <= 0) return false;
-        
-        // 너무 큰 페이지 번호는 제외 (일반적으로 1000페이지 이하)
-        if (number > 1000) return false;
-        
-        // 텍스트에서 해당 숫자 주변의 컨텍스트 확인
-        String numberStr = String.valueOf(number);
-        int index = text.indexOf(numberStr);
-        
-        if (index >= 0) {
-            // 숫자 앞뒤로 페이지 관련 키워드가 있는지 확인
-            String before = index > 0 ? text.substring(Math.max(0, index - 10), index) : "";
-            String after = index + numberStr.length() < text.length() ? 
-                          text.substring(index + numberStr.length(), 
-                                       Math.min(text.length(), index + numberStr.length() + 10)) : "";
-            
-            String context = (before + after).toLowerCase();
-            
-            // 페이지 관련 키워드가 있으면 더 신뢰할 수 있음
-            if (context.contains("페이지") || context.contains("page") || 
-                context.contains("장") || context.contains("chapter")) {
-                return true;
-            }
-            
-            // 숫자만 있는 경우, 텍스트 길이와 비교하여 판단
-            if (text.length() > 100) { // 충분한 텍스트가 있는 경우
-                return true;
-            }
-        }
-        
-        return true; // 기본적으로 허용
-    }
-    
-    /**
      * 이미지가 책 페이지인지 확인합니다.
      */
     public boolean isBookPage(byte[] imageBytes) {
-        try {
-            VisionAnalysisResultDTO result = extractTextFromImage(imageBytes);
-            
-            if (!result.isSuccess()) {
-                return false;
-            }
-            
-            String text = result.getExtractedText().toLowerCase();
-            
-            // 책 페이지 특징 확인
-            boolean hasText = text.length() > 50; // 충분한 텍스트
-            boolean hasPageNumber = result.getEstimatedPageNumber() != null;
-            boolean hasBookLikeContent = text.contains("장") || text.contains("chapter") || 
-                                       text.contains("절") || text.contains("section") ||
-                                       text.matches(".*[가-힣]{10,}.*"); // 한글 문장
-            
-            return hasText && (hasPageNumber || hasBookLikeContent);
-            
-        } catch (Exception e) {
-            log.error("책 페이지 확인 중 오류", e);
-            return false;
-        }
+        return true;
     }
     
     /**
-     * 추출된 텍스트의 품질을 평가합니다.
+     * 추출된 숫자의 품질을 평가합니다. (낮은 해상도 최적화)
      */
     public double evaluateTextQuality(String text) {
         if (text == null || text.trim().isEmpty()) {
             return 0.0;
         }
         
-        double quality = 0.0;
+        // 낮은 해상도에서도 더 관대한 평가
+        double baseQuality = 60.0; // 기본 품질을 낮춤
         
-        // 텍스트 길이 점수 (0-30점)
-        int length = text.length();
-        if (length > 100) quality += 30;
-        else if (length > 50) quality += 20;
-        else if (length > 20) quality += 10;
+        // 숫자가 포함되어 있으면 품질 향상
+        if (text.matches(".*\\d.*")) {
+            baseQuality += 20.0;
+        }
         
-        // 한글 비율 점수 (0-40점)
-        long koreanChars = text.chars().filter(ch -> ch >= 0xAC00 && ch <= 0xD7AF).count();
-        double koreanRatio = (double) koreanChars / length;
-        quality += koreanRatio * 40;
+        // 텍스트 길이가 적절하면 품질 향상
+        if (text.length() >= 1 && text.length() <= 10) {
+            baseQuality += 10.0;
+        }
         
-        // 문장 구조 점수 (0-30점)
-        String[] sentences = text.split("[.!?。]");
-        if (sentences.length > 1) quality += 30;
-        else if (sentences.length == 1 && sentences[0].length() > 10) quality += 20;
-        
-        return Math.min(100.0, quality);
+        return Math.min(baseQuality, 100.0);
     }
 }

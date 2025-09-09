@@ -11,7 +11,7 @@ import java.util.List;
 public class VisionAnalysisResultDTO {
     
     private String extractedText;
-    private List<String> detectedWords;
+    private List<String> detectedNumbers;
     private Double confidence;
     private LocalDateTime analysisTime;
     private String language;
@@ -19,14 +19,14 @@ public class VisionAnalysisResultDTO {
     private Boolean isBookPage;
     private String errorMessage;
     
-    // 분석 성공 여부
+    // 분석 성공 여부 (숫자가 하나라도 있으면 성공)
     public boolean isSuccess() {
-        return errorMessage == null && extractedText != null && !extractedText.trim().isEmpty();
+        return errorMessage == null && detectedNumbers != null && !detectedNumbers.isEmpty();
     }
     
-    // 텍스트 길이 (단어 수 추정)
-    public int getWordCount() {
-        if (extractedText == null) return 0;
-        return extractedText.split("\\s+").length;
+    // 숫자 개수
+    public int getNumberCount() {
+        if (detectedNumbers == null) return 0;
+        return detectedNumbers.size();
     }
 }

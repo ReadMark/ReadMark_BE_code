@@ -7,7 +7,7 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "Favorite_Page")
+@Table(name = "favorite_pages")
 @Getter
 @Setter
 public class FavoritePage {

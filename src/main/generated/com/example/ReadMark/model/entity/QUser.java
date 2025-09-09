@@ -1,8 +1,7 @@
-package com.example.ReadMark.entity;
+package com.example.ReadMark.model.entity;
 
 import static com.querydsl.core.types.PathMetadataFactory.*;
 
-import com.example.ReadMark.model.dto.entity.*;
 import com.querydsl.core.types.dsl.*;
 
 import com.querydsl.core.types.PathMetadata;
@@ -17,7 +16,7 @@ import com.querydsl.core.types.dsl.PathInits;
 @Generated("com.querydsl.codegen.DefaultEntitySerializer")
 public class QUser extends EntityPathBase<User> {
 
-    private static final long serialVersionUID = 1534992028L;
+    private static final long serialVersionUID = 1339694807L;
 
     public static final QUser user = new QUser("user");
 

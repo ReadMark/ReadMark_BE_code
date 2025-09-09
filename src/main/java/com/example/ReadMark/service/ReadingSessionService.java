@@ -43,7 +43,7 @@ public class ReadingSessionService {
         session.setBookId(bookId);
         session.setStartTime(LocalDateTime.now());
         session.setTotalPagesRead(0);
-        session.setTotalWordsRead(0);
+        session.setTotalNumbersRead(0);
         
         activeSessions.put(userId, session);
         
@@ -84,9 +84,10 @@ public class ReadingSessionService {
         // 텍스트 품질 평가
         double quality = visionService.evaluateTextQuality(extractedText);
         
-        if (quality > 50.0) { // 품질이 좋은 경우만 카운트
+        if (quality > 30.0) { // 낮은 해상도에서도 더 관대한 품질 기준
             session.setTotalPagesRead(session.getTotalPagesRead() + 1);
-            session.setTotalWordsRead(session.getTotalWordsRead() + extractedText.split("\\s+").length);
+            // 숫자 개수 계산 (간단히 1로 설정)
+            session.setTotalNumbersRead(session.getTotalNumbersRead() + 1);
             
             log.info("세션에 페이지 추가: 사용자 {}, 품질 {}, 총 {}페이지", 
                     userId, quality, session.getTotalPagesRead());
@@ -200,7 +201,7 @@ public class ReadingSessionService {
         LocalDate startDate = LocalDate.now().minusYears(1);
         LocalDate endDate = LocalDate.now();
         
-        List<ReadingLog> readingLogs = readingLogRepository.findByUserIdAndReadDateBetween(userId, startDate, endDate);
+        List<ReadingLog> readingLogs = readingLogRepository.findByUser_UserIdAndReadDateBetween(userId, startDate, endDate);
         
         return readingLogs.stream()
                 .map(ReadingLog::getReadDate)
@@ -215,7 +216,7 @@ public class ReadingSessionService {
         LocalDate startDate = LocalDate.now().minusMonths(months);
         LocalDate endDate = LocalDate.now();
         
-        List<ReadingLog> readingLogs = readingLogRepository.findByUserIdAndReadDateBetween(userId, startDate, endDate);
+        List<ReadingLog> readingLogs = readingLogRepository.findByUser_UserIdAndReadDateBetween(userId, startDate, endDate);
         
         Map<String, Object> stats = new HashMap<>();
         Map<String, Integer> monthlyPages = new HashMap<>();
@@ -252,7 +253,7 @@ public class ReadingSessionService {
         }
         
         // 평균 페이지 수 계산
-        List<ReadingLog> recentLogs = readingLogRepository.findByUserIdAndReadDateBetween(
+        List<ReadingLog> recentLogs = readingLogRepository.findByUser_UserIdAndReadDateBetween(
                 userId, LocalDate.now().minusMonths(1), LocalDate.now());
         
         double avgPages = recentLogs.stream()

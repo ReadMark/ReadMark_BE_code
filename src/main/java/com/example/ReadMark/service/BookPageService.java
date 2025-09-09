@@ -48,18 +48,15 @@ public class BookPageService {
                 throw new RuntimeException("텍스트 추출 실패: " + visionResult.getErrorMessage());
             }
             
-            // 페이지 번호 추출
+            // 페이지 번호 추출 (단순화)
             Integer pageNumber = visionResult.getEstimatedPageNumber();
             if (pageNumber == null) {
-                // 페이지 번호를 찾을 수 없는 경우, 기존 페이지 수 + 1로 설정
-                Long existingPageCount = bookPageRepository.countByUserIdAndBookId(userId, bookId);
-                pageNumber = existingPageCount.intValue() + 1;
-                log.warn("페이지 번호를 자동으로 {}로 설정했습니다.", pageNumber);
+                pageNumber = 1; // 기본값으로 단순화
             }
             
             // 중복 페이지 확인
             Optional<BookPage> existingPage = bookPageRepository
-                    .findByUserIdAndBookIdAndPageNumber(userId, bookId, pageNumber);
+                    .findByUser_UserIdAndBook_BookIdAndPageNumber(userId, bookId, pageNumber);
             if (existingPage.isPresent()) {
                 log.warn("페이지 {}가 이미 존재합니다. 업데이트합니다.", pageNumber);
                 return updateExistingPage(existingPage.get(), imageBytes, visionResult, deviceInfo, captureTime);
@@ -76,7 +73,7 @@ public class BookPageService {
             bookPage.setConfidence(visionResult.getConfidence());
             bookPage.setDeviceInfo(deviceInfo);
             bookPage.setLanguage(visionResult.getLanguage());
-            bookPage.setWordCount(visionResult.getWordCount());
+            bookPage.setNumberCount(visionResult.getNumberCount());
             bookPage.setTextQuality(visionService.evaluateTextQuality(visionResult.getExtractedText()));
             
             BookPage savedPage = bookPageRepository.save(bookPage);
@@ -101,7 +98,7 @@ public class BookPageService {
         existingPage.setCapturedAt(captureTime != null ? captureTime : LocalDateTime.now());
         existingPage.setConfidence(visionResult.getConfidence());
         existingPage.setDeviceInfo(deviceInfo);
-        existingPage.setWordCount(visionResult.getWordCount());
+        existingPage.setNumberCount(visionResult.getNumberCount());
         existingPage.setTextQuality(visionService.evaluateTextQuality(visionResult.getExtractedText()));
         
         BookPage updatedPage = bookPageRepository.save(existingPage);
@@ -114,7 +111,7 @@ public class BookPageService {
      * 사용자와 책별로 페이지 목록을 조회합니다.
      */
     public List<BookPageDTO> getBookPages(Long userId, Long bookId) {
-        List<BookPage> pages = bookPageRepository.findByUserIdAndBookIdOrderByPageNumberAsc(userId, bookId);
+        List<BookPage> pages = bookPageRepository.findByUser_UserIdAndBook_BookIdOrderByPageNumberAsc(userId, bookId);
         return pages.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
@@ -124,7 +121,7 @@ public class BookPageService {
      * 특정 페이지를 조회합니다.
      */
     public BookPageDTO getBookPage(Long userId, Long bookId, Integer pageNumber) {
-        BookPage page = bookPageRepository.findByUserIdAndBookIdAndPageNumber(userId, bookId, pageNumber)
+        BookPage page = bookPageRepository.findByUser_UserIdAndBook_BookIdAndPageNumber(userId, bookId, pageNumber)
                 .orElseThrow(() -> new RuntimeException("페이지를 찾을 수 없습니다."));
         return convertToDTO(page);
     }
@@ -154,7 +151,7 @@ public class BookPageService {
      * 페이지를 삭제합니다.
      */
     public void deleteBookPage(Long userId, Long bookId, Integer pageNumber) {
-        BookPage page = bookPageRepository.findByUserIdAndBookIdAndPageNumber(userId, bookId, pageNumber)
+        BookPage page = bookPageRepository.findByUser_UserIdAndBook_BookIdAndPageNumber(userId, bookId, pageNumber)
                 .orElseThrow(() -> new RuntimeException("페이지를 찾을 수 없습니다."));
         
         bookPageRepository.delete(page);
@@ -184,7 +181,7 @@ public class BookPageService {
         dto.setConfidence(bookPage.getConfidence());
         dto.setDeviceInfo(bookPage.getDeviceInfo());
         dto.setLanguage(bookPage.getLanguage());
-        dto.setWordCount(bookPage.getWordCount());
+        dto.setNumberCount(bookPage.getNumberCount());
         dto.setTextQuality(bookPage.getTextQuality());
         return dto;
     }
