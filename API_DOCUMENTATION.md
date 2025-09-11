@@ -65,6 +65,14 @@ Content-Type: application/json
 }
 ```
 
+**응답 스키마:**
+- `success`: `boolean` - 요청 성공 여부
+- `message`: `string` - 응답 메시지
+- `data`: `object` - 사용자 정보
+  - `userId`: `number` - 사용자 ID
+  - `username`: `string` - 사용자명
+  - `email`: `string` - 이메일 주소
+
 ### 로그인
 ```http
 POST /api/users/login
@@ -112,6 +120,11 @@ Content-Type: application/json
 }
 ```
 
+**응답 스키마:**
+- `success`: `boolean` - 요청 성공 여부
+- `message`: `string` - 응답 메시지
+- `bookId`: `number` - 등록된 책의 ID
+
 ### 책 검색
 ```http
 GET /api/books/search?keyword=자바
@@ -133,6 +146,16 @@ GET /api/books/search?keyword=자바
   "count": 1
 }
 ```
+
+**응답 스키마:**
+- `success`: `boolean` - 요청 성공 여부
+- `books`: `array` - 검색된 책 목록
+  - `bookId`: `number` - 책 ID
+  - `title`: `string` - 책 제목
+  - `author`: `string` - 저자명
+  - `isbn`: `string` - ISBN 번호
+  - `totalPages`: `number` - 총 페이지 수
+- `count`: `number` - 검색된 책의 개수
 
 ### 책 상세 조회
 ```http
@@ -170,6 +193,16 @@ Content-Type: application/json
   }
 }
 ```
+
+**응답 스키마:**
+- `success`: `boolean` - 요청 성공 여부
+- `message`: `string` - 응답 메시지
+- `data`: `object` - 사용자-책 관계 정보
+  - `userBookId`: `number` - 사용자-책 관계 ID
+  - `userId`: `number` - 사용자 ID
+  - `bookId`: `number` - 책 ID
+  - `status`: `string` - 독서 상태 ("READING", "COMPLETED", "WANNA_READ")
+  - `currentPage`: `number` - 현재 읽고 있는 페이지 번호
 
 ### 사용자 서재 조회
 ```http
@@ -236,6 +269,20 @@ captureTime: "2024-01-15 14:30:00"
 }
 ```
 
+**응답 스키마:**
+- `success`: `boolean` - 요청 성공 여부
+- `message`: `string` - 응답 메시지
+- `page`: `object` - 페이지 정보
+  - `pageId`: `number` - 페이지 ID
+  - `pageNumber`: `number` - 페이지 번호
+  - `extractedText`: `string` - 추출된 텍스트
+  - `confidence`: `number` - OCR 신뢰도 (0.0 ~ 1.0)
+  - `language`: `string` - 인식된 언어 코드
+  - `numberCount`: `number` - 추출된 숫자 개수
+  - `textQuality`: `number` - 텍스트 품질 점수
+  - `capturedAt`: `string` - 캡처 시간 (ISO 8601 형식)
+- `deviceInfo`: `string` - 디바이스 정보
+
 ### 독서 세션 시작
 ```http
 POST /api/image/session/start
@@ -273,6 +320,17 @@ GET /api/image/stats/{userId}
   }
 }
 ```
+
+**응답 스키마:**
+- `success`: `boolean` - 요청 성공 여부
+- `stats`: `object` - 독서 통계 정보
+  - `maxConsecutiveDays`: `number` - 최대 연속 독서일
+  - `totalReadingDays`: `number` - 총 독서일
+  - `currentConsecutiveDays`: `number` - 현재 연속 독서일
+  - `habitAnalysis`: `object` - 독서 습관 분석
+    - `avgPagesPerDay`: `number` - 일평균 독서 페이지 수
+    - `favoriteDayOfWeek`: `string` - 가장 많이 읽는 요일
+    - `readingFrequency`: `string` - 독서 빈도 (백분율)
 
 ### 월별 독서 통계
 ```http
@@ -334,6 +392,20 @@ image: [이미지 파일]
 }
 ```
 
+**응답 스키마:**
+- `success`: `boolean` - 요청 성공 여부
+- `message`: `string` - 응답 메시지
+- `pageId`: `number` - 페이지 ID
+- `pageNumber`: `number` - 페이지 번호
+- `extractedText`: `string` - 추출된 텍스트
+- `confidence`: `number` - OCR 신뢰도 (0.0 ~ 1.0)
+- `textQuality`: `number` - 텍스트 품질 점수
+- `deviceInfo`: `string` - 디바이스 정보
+- `capturedAt`: `string` - 캡처 시간 (ISO 8601 형식)
+- `date`: `number` - 연속 독서일 수
+- `readingPeriod`: `string` - 독서 기간
+- `currentConsecutiveDays`: `number` - 현재 연속 독서일
+
 ### ESP32 독서 세션 시작
 ```http
 POST /esp32/session/start
@@ -353,6 +425,17 @@ POST /esp32/session/start
   "currentConsecutiveDays": 3
 }
 ```
+
+**응답 스키마:**
+- `success`: `boolean` - 요청 성공 여부
+- `message`: `string` - 응답 메시지
+- `sessionId`: `string` - 세션 ID
+- `startTime`: `string` - 세션 시작 시간 (ISO 8601 형식)
+- `userId`: `number` - 사용자 ID
+- `bookId`: `number` - 책 ID
+- `date`: `number` - 연속 독서일 수
+- `readingPeriod`: `string` - 독서 기간
+- `currentConsecutiveDays`: `number` - 현재 연속 독서일
 
 ### ESP32 독서 세션 종료
 ```http
@@ -375,6 +458,18 @@ POST /esp32/session/end
 }
 ```
 
+**응답 스키마:**
+- `success`: `boolean` - 요청 성공 여부
+- `message`: `string` - 응답 메시지
+- `totalPagesRead`: `number` - 총 읽은 페이지 수
+- `totalNumbersRead`: `number` - 총 읽은 숫자 개수
+- `readingDurationMinutes`: `number` - 독서 시간 (분)
+- `endTime`: `string` - 세션 종료 시간 (ISO 8601 형식)
+- `userId`: `number` - 사용자 ID
+- `date`: `number` - 연속 독서일 수
+- `readingPeriod`: `string` - 독서 기간
+- `currentConsecutiveDays`: `number` - 현재 연속 독서일
+
 ### ESP32 통계 조회
 ```http
 GET /esp32/stats
@@ -393,6 +488,11 @@ GET /upload/health
   "timestamp": "2024-01-15T14:30:00"
 }
 ```
+
+**응답 스키마:**
+- `status`: `string` - 서비스 상태 ("OK", "ERROR")
+- `message`: `string` - 상태 메시지
+- `timestamp`: `string` - 응답 시간 (ISO 8601 형식)
 
 ---
 
@@ -420,6 +520,12 @@ Content-Type: application/json
 }
 ```
 
+**응답 스키마:**
+- `success`: `boolean` - 요청 성공 여부
+- `message`: `string` - 응답 메시지
+- `logId`: `number` - 독서 기록 ID
+- `pagesRead`: `number` - 읽은 페이지 수
+
 ### 기간별 독서 기록 조회
 ```http
 GET /api/readinglogs/user/{userId}?startDate=2024-01-01&endDate=2024-01-31
@@ -438,6 +544,11 @@ GET /api/readinglogs/user/{userId}/today
   "date": "2024-01-15"
 }
 ```
+
+**응답 스키마:**
+- `success`: `boolean` - 요청 성공 여부
+- `pagesRead`: `number` - 오늘 읽은 페이지 수
+- `date`: `string` - 날짜 (YYYY-MM-DD 형식)
 
 ### 독서 통계
 ```http
@@ -481,6 +592,16 @@ GET /api/calendar/{userId}/{year}/{month}
 }
 ```
 
+**응답 스키마:**
+- `success`: `boolean` - 요청 성공 여부
+- `calendar`: `object` - 캘린더 정보
+  - `year`: `number` - 연도
+  - `month`: `number` - 월 (1-12)
+  - `days`: `array` - 일별 독서 데이터
+    - `date`: `string` - 날짜 (YYYY-MM-DD 형식)
+    - `pagesRead`: `number` - 읽은 페이지 수
+    - `hasReading`: `boolean` - 독서 여부
+
 ---
 
 ## 👤 MyPage API
@@ -504,6 +625,16 @@ GET /api/mypage/user/{userId}/stats
   }
 }
 ```
+
+**응답 스키마:**
+- `success`: `boolean` - 요청 성공 여부
+- `stats`: `object` - 사용자 통계 정보
+  - `totalBooks`: `number` - 총 책 수
+  - `totalPages`: `number` - 총 읽은 페이지 수
+  - `totalReadingDays`: `number` - 총 독서일
+  - `maxConsecutiveDays`: `number` - 최대 연속 독서일
+  - `currentConsecutiveDays`: `number` - 현재 연속 독서일
+  - `avgPagesPerDay`: `number` - 일평균 독서 페이지 수
 
 ### 즐겨찾기 페이지
 ```http

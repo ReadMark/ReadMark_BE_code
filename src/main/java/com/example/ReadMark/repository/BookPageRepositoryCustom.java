@@ -15,7 +15,6 @@ public interface BookPageRepositoryCustom {
     List<BookPage> findRecentPagesByUserIdAndBookId(Long userId, Long bookId);
     List<BookPage> findByPageRange(Long userId, Long bookId, Integer startPage, Integer endPage);
     List<BookPage> findBookPagesWithUserAndBookInfo(Long userId, Long bookId);
-    List<BookPage> findBookPagesByQualityRange(Long userId, Long bookId, Double minQuality, Double maxQuality);
     List<BookPage> findBookPagesByConfidenceRange(Long userId, Long bookId, Double minConfidence, Double maxConfidence);
     List<BookPage> findBookPagesWithPagination(Long userId, Long bookId, int offset, int limit);
     

@@ -112,18 +112,6 @@ public class BookPageRepositoryImpl implements BookPageRepositoryCustom {
                 .fetch();
     }
     
-    @Override
-    public List<BookPage> findBookPagesByQualityRange(Long userId, Long bookId, Double minQuality, Double maxQuality) {
-        QBookPage bookPage = QBookPage.bookPage;
-        
-        return queryFactory
-                .selectFrom(bookPage)
-                .where(bookPage.user.userId.eq(userId)
-                        .and(bookPage.book.bookId.eq(bookId))
-                        .and(bookPage.textQuality.between(minQuality, maxQuality)))
-                .orderBy(bookPage.textQuality.desc())
-                .fetch();
-    }
     
     @Override
     public List<BookPage> findBookPagesByConfidenceRange(Long userId, Long bookId, Double minConfidence, Double maxConfidence) {

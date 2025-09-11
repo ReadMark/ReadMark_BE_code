@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # MySQL 데이터베이스
+  mysql:
+    image: mysql:8.0
+    container_name: readmark-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: readmark
+      MYSQL_USER: readmarkuser
+      MYSQL_PASSWORD: !@12QWqw
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql_database_schema.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - readmark-network
+
+  # ReadMark Backend Application
+  readmark-backend:
+    build: .
+    container_name: readmark-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DATABASE_URL=jdbc:mysql://mysql:3306/readmark?useSSL=false&serverTimezone=Asia/Seoul
+      - DATABASE_USERNAME=readmarkuser
+      - DATABASE_PASSWORD=!@12QWqw
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/google-credentials.json
+    volumes:
+      - ./google-credentials.json:/app/google-credentials.json:ro
+    depends_on:
+      - mysql
+    networks:
+      - readmark-network
+
+volumes:
+  mysql_data:
+
+networks:
+  readmark-network:
+    driver: bridge
+
+
+

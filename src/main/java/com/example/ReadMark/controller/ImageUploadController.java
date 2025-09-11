@@ -92,17 +92,15 @@ public class ImageUploadController {
                 userId, bookId, imageBytes, deviceInfo, parsedCaptureTime);
             
             // 독서 세션에 이미지 추가
-            readingSessionService.addImageToSession(userId, imageBytes, bookPage.getExtractedText());
+            readingSessionService.addImageToSession(userId, imageBytes, bookPage.getPageNumber());
             
             // 응답 데이터 구성
             Map<String, Object> pageData = new HashMap<>();
             pageData.put("pageId", bookPage.getPageId());
             pageData.put("pageNumber", bookPage.getPageNumber());
-            pageData.put("extractedText", bookPage.getExtractedText());
             pageData.put("confidence", bookPage.getConfidence());
             pageData.put("language", bookPage.getLanguage());
             pageData.put("numberCount", bookPage.getNumberCount());
-            pageData.put("textQuality", bookPage.getTextQuality());
             pageData.put("capturedAt", bookPage.getCapturedAt());
             
             response.put("success", true);

@@ -13,7 +13,6 @@ public class BookPageDTO {
     private Long bookId;
     private Long userId;
     private Integer pageNumber;
-    private String extractedText;
     private String imageUrl;
     private LocalDateTime capturedAt;
     private LocalDateTime createdAt;
@@ -21,5 +20,4 @@ public class BookPageDTO {
     private String deviceInfo;
     private String language;
     private Integer numberCount;
-    private Double textQuality;
 }

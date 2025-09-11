@@ -65,15 +65,13 @@ public class GoogleVisionService {
                         return result;
                     }
                     
-                    // 숫자 추출 (낮은 해상도 최적화)
-                    StringBuilder fullText = new StringBuilder();
+                    // 숫자만 추출 (낮은 해상도 최적화)
                     List<String> numbers = new ArrayList<>();
                     double maxConfidence = 0.0;
                     
                     // DOCUMENT_TEXT_DETECTION 결과 우선 사용 (낮은 해상도에서 더 정확)
                     if (res.hasFullTextAnnotation()) {
                         String documentText = res.getFullTextAnnotation().getText();
-                        fullText.append(documentText);
                         
                         // 숫자 패턴 추출 (1-5자리 숫자만)
                         String numberPattern = "\\b\\d{1,5}\\b";
@@ -99,10 +97,6 @@ public class GoogleVisionService {
                             maxConfidence = confidence;
                         }
                         
-                        if (fullText.length() == 0) {
-                            fullText.append(text);
-                        }
-                        
                         // 숫자 패턴 재확인 (더 관대한 패턴 사용)
                         String numberPattern = "\\d{1,5}"; // 단어 경계 제거로 더 많은 숫자 감지
                         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(numberPattern);
@@ -115,12 +109,6 @@ public class GoogleVisionService {
                             }
                         }
                     }
-                    
-                    result.setExtractedText(fullText.toString());
-                    result.setDetectedNumbers(numbers); // 숫자만 저장
-                    result.setConfidence(maxConfidence > 0 ? maxConfidence : 0.8);
-                    result.setLanguage("ko");
-                    result.setIsBookPage(true);
                     
                     // 가장 좋은 숫자 선택 (낮은 해상도 최적화)
                     if (!numbers.isEmpty()) {
@@ -137,8 +125,9 @@ public class GoogleVisionService {
                                 log.info("4자리 숫자 감지: {} → {} (앞자리 제거)", bestNumber, processedNumber);
                             }
                             
+                            // extractedText 필드 제거됨 - pageNumber만 사용
                             result.setEstimatedPageNumber(Integer.parseInt(processedNumber));
-                            log.info("인식된 숫자: {} → {} (총 {}개 발견, 신뢰도: {})", 
+                            log.info("인식된 페이지 번호: {} → {} (총 {}개 발견, 신뢰도: {})", 
                                     bestNumber, processedNumber, numbers.size(), maxConfidence);
                         } catch (NumberFormatException e) {
                             result.setEstimatedPageNumber(1);
@@ -146,8 +135,13 @@ public class GoogleVisionService {
                         }
                     } else {
                         result.setEstimatedPageNumber(1);
-                        log.warn("숫자를 찾을 수 없습니다. 추출된 텍스트: {}", fullText.toString());
+                        log.warn("숫자를 찾을 수 없습니다.");
                     }
+                    
+                    result.setDetectedNumbers(numbers); // 숫자만 저장
+                    result.setConfidence(maxConfidence > 0 ? maxConfidence : 0.8);
+                    result.setLanguage("ko");
+                    result.setIsBookPage(true);
                     
                     log.info("숫자 추출 완료: {} 개", numbers.size());
                     
@@ -175,27 +169,4 @@ public class GoogleVisionService {
         return true;
     }
     
-    /**
-     * 추출된 숫자의 품질을 평가합니다. (낮은 해상도 최적화)
-     */
-    public double evaluateTextQuality(String text) {
-        if (text == null || text.trim().isEmpty()) {
-            return 0.0;
-        }
-        
-        // 낮은 해상도에서도 더 관대한 평가
-        double baseQuality = 60.0; // 기본 품질을 낮춤
-        
-        // 숫자가 포함되어 있으면 품질 향상
-        if (text.matches(".*\\d.*")) {
-            baseQuality += 20.0;
-        }
-        
-        // 텍스트 길이가 적절하면 품질 향상
-        if (text.length() >= 1 && text.length() <= 10) {
-            baseQuality += 10.0;
-        }
-        
-        return Math.min(baseQuality, 100.0);
-    }
 }

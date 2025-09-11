@@ -32,8 +32,6 @@ public class QBookPage extends EntityPathBase<BookPage> {
 
     public final StringPath deviceInfo = createString("deviceInfo");
 
-    public final StringPath extractedText = createString("extractedText");
-
     public final ArrayPath<byte[], Byte> imageData = createArray("imageData", byte[].class);
 
     public final StringPath imageUrl = createString("imageUrl");
@@ -45,8 +43,6 @@ public class QBookPage extends EntityPathBase<BookPage> {
     public final NumberPath<Long> pageId = createNumber("pageId", Long.class);
 
     public final NumberPath<Integer> pageNumber = createNumber("pageNumber", Integer.class);
-
-    public final NumberPath<Double> textQuality = createNumber("textQuality", Double.class);
 
     public final QUser user;
 

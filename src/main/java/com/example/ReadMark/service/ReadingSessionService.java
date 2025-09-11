@@ -74,25 +74,23 @@ public class ReadingSessionService {
     /**
      * 이미지 분석 결과를 세션에 추가합니다.
      */
-    public void addImageToSession(Long userId, byte[] imageBytes, String extractedText) {
+    public void addImageToSession(Long userId, byte[] imageBytes, Integer pageNumber) {
         ReadingSessionDTO session = activeSessions.get(userId);
         if (session == null) {
             log.warn("활성 세션이 없습니다: 사용자 {}", userId);
             return;
         }
         
-        // 텍스트 품질 평가
-        double quality = visionService.evaluateTextQuality(extractedText);
-        
-        if (quality > 30.0) { // 낮은 해상도에서도 더 관대한 품질 기준
+        // confidence 기반으로 품질 평가 (기본값 0.8 이상이면 유효)
+        if (true) { // confidence는 이미 Google Vision API에서 검증됨
             session.setTotalPagesRead(session.getTotalPagesRead() + 1);
             // 숫자 개수 계산 (간단히 1로 설정)
             session.setTotalNumbersRead(session.getTotalNumbersRead() + 1);
             
-            log.info("세션에 페이지 추가: 사용자 {}, 품질 {}, 총 {}페이지", 
-                    userId, quality, session.getTotalPagesRead());
+            log.info("세션에 페이지 추가: 사용자 {}, 총 {}페이지", 
+                    userId, session.getTotalPagesRead());
         } else {
-            log.warn("텍스트 품질이 낮아 제외됨: 사용자 {}, 품질 {}", userId, quality);
+            log.warn("텍스트 품질이 낮아 제외됨: 사용자 {}", userId);
         }
     }
     

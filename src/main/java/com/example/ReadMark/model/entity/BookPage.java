@@ -27,9 +27,6 @@ public class BookPage {
     @Column(nullable = false)
     private Integer pageNumber;
     
-    @Column(columnDefinition = "TEXT")
-    private String extractedText;
-    
     @Column(length = 500)
     private String imageUrl;
     
@@ -52,8 +49,6 @@ public class BookPage {
     private String language;
     
     private Integer numberCount;
-    
-    private Double textQuality;
     
     @PrePersist
     protected void onCreate() {

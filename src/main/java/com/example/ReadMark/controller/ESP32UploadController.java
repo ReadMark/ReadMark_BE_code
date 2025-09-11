@@ -81,7 +81,7 @@ public class ESP32UploadController {
                 userId, bookId, imageBytes, deviceInfo, captureTime);
             
             // 독서 세션에 페이지 추가
-            readingSessionService.addImageToSession(userId, imageBytes, bookPage.getExtractedText());
+            readingSessionService.addImageToSession(userId, imageBytes, bookPage.getPageNumber());
             
             // 독서 기간 계산 (시작일과 종료일)
             Map<String, Object> readingPeriod = calculateReadingPeriod(userId);
@@ -91,9 +91,7 @@ public class ESP32UploadController {
             response.put("message", "이미지 업로드 성공");
             response.put("pageId", bookPage.getPageId());
             response.put("pageNumber", bookPage.getPageNumber());
-            response.put("extractedText", bookPage.getExtractedText());
             response.put("confidence", bookPage.getConfidence());
-            response.put("textQuality", bookPage.getTextQuality());
             response.put("deviceInfo", deviceInfo);
             response.put("capturedAt", bookPage.getCapturedAt());
             

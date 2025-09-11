@@ -67,14 +67,12 @@ public class BookPageService {
             bookPage.setUser(user);
             bookPage.setBook(book);
             bookPage.setPageNumber(pageNumber);
-            bookPage.setExtractedText(visionResult.getExtractedText());
             bookPage.setImageData(imageBytes);
             bookPage.setCapturedAt(captureTime != null ? captureTime : LocalDateTime.now());
             bookPage.setConfidence(visionResult.getConfidence());
             bookPage.setDeviceInfo(deviceInfo);
             bookPage.setLanguage(visionResult.getLanguage());
             bookPage.setNumberCount(visionResult.getNumberCount());
-            bookPage.setTextQuality(visionService.evaluateTextQuality(visionResult.getExtractedText()));
             
             BookPage savedPage = bookPageRepository.save(bookPage);
             log.info("새 페이지 생성 완료: 사용자 {}, 책 {}, 페이지 {}", userId, bookId, pageNumber);
@@ -93,13 +91,11 @@ public class BookPageService {
     private BookPageDTO updateExistingPage(BookPage existingPage, byte[] imageBytes, 
                                          VisionAnalysisResultDTO visionResult, 
                                          String deviceInfo, LocalDateTime captureTime) {
-        existingPage.setExtractedText(visionResult.getExtractedText());
         existingPage.setImageData(imageBytes);
         existingPage.setCapturedAt(captureTime != null ? captureTime : LocalDateTime.now());
         existingPage.setConfidence(visionResult.getConfidence());
         existingPage.setDeviceInfo(deviceInfo);
         existingPage.setNumberCount(visionResult.getNumberCount());
-        existingPage.setTextQuality(visionService.evaluateTextQuality(visionResult.getExtractedText()));
         
         BookPage updatedPage = bookPageRepository.save(existingPage);
         log.info("기존 페이지 업데이트 완료: 페이지 ID {}", updatedPage.getPageId());
@@ -174,7 +170,6 @@ public class BookPageService {
         dto.setBookId(bookPage.getBook().getBookId());
         dto.setUserId(bookPage.getUser().getUserId());
         dto.setPageNumber(bookPage.getPageNumber());
-        dto.setExtractedText(bookPage.getExtractedText());
         dto.setImageUrl(bookPage.getImageUrl());
         dto.setCapturedAt(bookPage.getCapturedAt());
         dto.setCreatedAt(bookPage.getCreatedAt());
@@ -182,7 +177,6 @@ public class BookPageService {
         dto.setDeviceInfo(bookPage.getDeviceInfo());
         dto.setLanguage(bookPage.getLanguage());
         dto.setNumberCount(bookPage.getNumberCount());
-        dto.setTextQuality(bookPage.getTextQuality());
         return dto;
     }
 }

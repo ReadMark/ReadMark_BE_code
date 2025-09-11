@@ -10,7 +10,6 @@ import java.util.List;
 @Setter
 public class VisionAnalysisResultDTO {
     
-    private String extractedText;
     private List<String> detectedNumbers;
     private Double confidence;
     private LocalDateTime analysisTime;
