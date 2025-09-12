@@ -1,9 +1,7 @@
 package com.example.ReadMark.config;
 
 import com.google.cloud.vision.v1.ImageAnnotatorClient;
-import com.google.cloud.vision.v1.ImageAnnotatorSettings;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -13,11 +11,6 @@ import java.io.IOException;
 @Slf4j
 public class GoogleVisionConfig {
     
-    @Value("${google.vision.api.key:}")
-    private String apiKey;
-    
-    @Value("${google.vision.project.id:}")
-    private String projectId;
     
     /**
      * Google Vision API 클라이언트를 생성합니다.
@@ -29,7 +22,7 @@ public class GoogleVisionConfig {
             // 환경 변수에서 인증 정보를 읽어옵니다.
             // GOOGLE_APPLICATION_CREDENTIALS 환경 변수를 설정해야 합니다.
             ImageAnnotatorClient client = ImageAnnotatorClient.create();
-            log.info("Google Vision API 클라이언트가 성공적으로 생성되었습니다. Project ID: {}", projectId);
+            log.info("Google Vision API 클라이언트가 성공적으로 생성되었습니다.");
             return client;
         } catch (IOException e) {
             log.error("Google Vision API 클라이언트 생성 실패", e);

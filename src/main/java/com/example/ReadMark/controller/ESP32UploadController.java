@@ -1,8 +1,10 @@
 package com.example.ReadMark.controller;
 
+import com.example.ReadMark.handler.ESP32WebSocketHandler;
 import com.example.ReadMark.model.dto.BookPageDTO;
 import com.example.ReadMark.service.BookPageService;
 import com.example.ReadMark.service.GoogleVisionService;
+import com.example.ReadMark.service.ReadingPeriodService;
 import com.example.ReadMark.service.ReadingSessionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +28,8 @@ public class ESP32UploadController {
     private final GoogleVisionService visionService;
     private final BookPageService bookPageService;
     private final ReadingSessionService readingSessionService;
+    private final ReadingPeriodService readingPeriodService;
+    private final ESP32WebSocketHandler webSocketHandler;
     
     /**
      * ESP32-CAM에서 이미지를 업로드합니다.
@@ -84,7 +88,7 @@ public class ESP32UploadController {
             readingSessionService.addImageToSession(userId, imageBytes, bookPage.getPageNumber());
             
             // 독서 기간 계산 (시작일과 종료일)
-            Map<String, Object> readingPeriod = calculateReadingPeriod(userId);
+            Map<String, Object> readingPeriod = readingPeriodService.calculateReadingPeriod(userId);
             
             // ESP32 응답 형식에 맞춰 응답 구성
             response.put("success", true);
@@ -103,6 +107,13 @@ public class ESP32UploadController {
             log.info("ESP32 이미지 업로드 완료: 페이지 {}", 
                     bookPage.getPageNumber());
             
+            // WebSocket으로 연결된 ESP32 클라이언트들에게 이미지 업로드 알림 전송
+            webSocketHandler.notifyImageUpload(
+                image.getOriginalFilename() != null ? image.getOriginalFilename() : "esp32_image.jpg",
+                image.getSize(),
+                true // 책 페이지로 인식됨
+            );
+            
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
@@ -113,56 +124,6 @@ public class ESP32UploadController {
         }
     }
     
-    /**
-     * 독서 기간을 계산합니다.
-     * ESP32에서 사용할 간단한 값과 전체 기간 정보를 반환합니다.
-     */
-    private Map<String, Object> calculateReadingPeriod(Long userId) {
-        Map<String, Object> result = new HashMap<>();
-        
-        try {
-            // 현재 연속 독서일 계산
-            int consecutiveDays = readingSessionService.getCurrentConsecutiveDays(userId);
-            
-            // 독서 통계 가져오기
-            Map<String, Object> readingStats = readingSessionService.getReadingHabitAnalysis(userId);
-            
-            // 현재 날짜
-            LocalDate today = LocalDate.now();
-            
-            // 독서 시작일 계산 (연속 독서일 기준)
-            LocalDate readingStartDate = today.minusDays(consecutiveDays - 1);
-            
-            // 날짜 형식 포맷터
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy.MM.dd");
-            
-            // 기간 문자열 생성 (예: "2023.01.02 - 2023.01.05")
-            String periodString = readingStartDate.format(formatter) + " - " + today.format(formatter);
-            
-            // ESP32에서 사용할 간단한 값 (연속 독서일 수)
-            result.put("date", consecutiveDays);
-            result.put("period", periodString);
-            result.put("consecutiveDays", consecutiveDays);
-            result.put("startDate", readingStartDate.format(formatter));
-            result.put("endDate", today.format(formatter));
-            result.put("totalReadingDays", readingStats.get("totalReadingDays"));
-            
-            log.info("독서 기간 계산 완료: 사용자 {}, 연속 {}일, 기간: {}", 
-                    userId, consecutiveDays, periodString);
-            
-        } catch (Exception e) {
-            log.error("독서 기간 계산 중 오류 발생", e);
-            // 오류 시 기본값 설정
-            result.put("date", 1);
-            result.put("period", LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")));
-            result.put("consecutiveDays", 1);
-            result.put("startDate", LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")));
-            result.put("endDate", LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")));
-            result.put("totalReadingDays", 1);
-        }
-        
-        return result;
-    }
     
     /**
      * ESP32 상태 확인용 헬스체크
@@ -173,7 +134,38 @@ public class ESP32UploadController {
         response.put("status", "OK");
         response.put("message", "ESP32 Upload Service is running");
         response.put("timestamp", LocalDateTime.now());
+        response.put("connectedWebSocketClients", webSocketHandler.getConnectedClientCount());
         return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * WebSocket 연결 상태 확인
+     */
+    @GetMapping("/ws/status")
+    public ResponseEntity<?> getWebSocketStatus() {
+        Map<String, Object> response = new HashMap<>();
+        response.put("connectedClients", webSocketHandler.getConnectedClientCount());
+        response.put("timestamp", LocalDateTime.now());
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * 테스트용 WebSocket 메시지 전송
+     */
+    @PostMapping("/ws/test")
+    public ResponseEntity<?> sendTestMessage(@RequestParam("message") String message) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            webSocketHandler.broadcast("test", message);
+            response.put("success", true);
+            response.put("message", "테스트 메시지가 전송되었습니다");
+            response.put("recipients", webSocketHandler.getConnectedClientCount());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "메시지 전송 실패: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
     }
 }
 

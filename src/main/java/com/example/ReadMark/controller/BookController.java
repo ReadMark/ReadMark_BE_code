@@ -56,7 +56,26 @@ public class BookController {
     
     @GetMapping("/{bookId}")
     public ResponseEntity<?> getBook(@PathVariable Long bookId) {
-        // 실제 구현에서는 BookService에 findById 메서드 추가 필요
-        return ResponseEntity.ok().build();
+        try {
+            Optional<Book> bookOpt = bookService.findById(bookId);
+            if (bookOpt.isPresent()) {
+                BookDTO bookDTO = bookService.convertToDTO(bookOpt.get());
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", true);
+                response.put("book", bookDTO);
+                response.put("message", "책 정보 조회 성공");
+                return ResponseEntity.ok(response);
+            } else {
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", false);
+                response.put("message", "책을 찾을 수 없습니다.");
+                return ResponseEntity.notFound().build();
+            }
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "책 정보 조회에 실패했습니다: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
     }
 }

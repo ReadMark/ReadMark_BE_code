@@ -24,8 +24,14 @@ public class UserService {
             throw new RuntimeException("이미 존재하는 이메일입니다.");
         }
         
+        // username 중복 체크
+        if (userRepository.existsByUsername(joinDTO.getUsername())) {
+            throw new RuntimeException("이미 존재하는 사용자명입니다.");
+        }
+        
         User user = new User();
         user.setName(joinDTO.getName());
+        user.setUsername(joinDTO.getUsername());
         user.setEmail(joinDTO.getEmail());
         user.setPassword(joinDTO.getPassword()); // 실제로는 암호화 필요
         

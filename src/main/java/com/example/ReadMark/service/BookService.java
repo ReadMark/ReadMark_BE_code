@@ -37,6 +37,10 @@ public class BookService {
                 .collect(Collectors.toList());
     }
     
+    public Optional<Book> findById(Long bookId) {
+        return bookRepository.findById(bookId);
+    }
+    
     public Optional<Book> findByTitleAndAuthor(String title, String author) {
         return bookRepository.findByTitleAndAuthor(title, author);
     }

@@ -76,10 +76,11 @@ public class MyPageController {
                                              @RequestParam Long bookId,
                                              @RequestParam int pageNumber) {
         try {
-            // 실제 구현에서는 MyPageService의 createFavoritePage 메서드 완성 필요
+            var favoritePage = myPageService.createFavoritePage(userId, bookId, pageNumber);
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "즐겨찾기한 페이지가 저장되었습니다.");
+            response.put("favoritePageId", favoritePage.getFavPageId());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             Map<String, Object> response = new HashMap<>();
@@ -95,10 +96,11 @@ public class MyPageController {
                                               @RequestParam(required = false) Integer pageNumber,
                                               @RequestParam String content) {
         try {
-            // 실제 구현에서는 MyPageService의 createFavoriteQuote 메서드 완성 필요
+            var favoriteQuote = myPageService.createFavoriteQuote(userId, bookId, pageNumber, content);
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "즐겨찾기한 문장이 저장되었습니다.");
+            response.put("favoriteQuoteId", favoriteQuote.getFavQuoteId());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             Map<String, Object> response = new HashMap<>();

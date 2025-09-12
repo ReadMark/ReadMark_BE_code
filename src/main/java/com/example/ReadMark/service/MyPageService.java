@@ -4,10 +4,13 @@ import com.example.ReadMark.model.dto.BookDTO;
 import com.example.ReadMark.model.dto.FavoritePageDTO;
 import com.example.ReadMark.model.dto.FavoriteQuoteDTO;
 import com.example.ReadMark.model.dto.UserStatsDTO;
+import com.example.ReadMark.model.entity.Book;
 import com.example.ReadMark.model.entity.FavoritePage;
 import com.example.ReadMark.model.entity.FavoriteQuote;
+import com.example.ReadMark.model.entity.User;
 import com.example.ReadMark.model.entity.UserBook;
 import com.example.ReadMark.model.entity.UserBook.Status;
+import com.example.ReadMark.repository.BookRepository;
 import com.example.ReadMark.repository.FavoritePageRepository;
 import com.example.ReadMark.repository.FavoriteQuoteRepository;
 import com.example.ReadMark.repository.UserBookRepository;
@@ -26,6 +29,7 @@ import java.util.stream.Collectors;
 public class MyPageService {
     
     private final UserRepository userRepository;
+    private final BookRepository bookRepository;
     private final UserBookRepository userBookRepository;
     private final FavoritePageRepository favoritePageRepository;
     private final FavoriteQuoteRepository favoriteQuoteRepository;
@@ -64,16 +68,58 @@ public class MyPageService {
     }
     
     public FavoritePage createFavoritePage(Long userId, Long bookId, int pageNumber) {
-        // 실제 구현에서는 Book과 User 존재 여부 확인 필요
+        // User 존재 여부 확인
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+        
+        // Book 존재 여부 확인
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new RuntimeException("책을 찾을 수 없습니다."));
+        
+        // 중복 확인 (같은 사용자가 같은 책의 같은 페이지를 이미 즐겨찾기했는지)
+        Optional<FavoritePage> existingFavorite = favoritePageRepository
+                .findByUser_UserIdAndBook_BookIdAndPageNumber(userId, bookId, pageNumber);
+        
+        if (existingFavorite.isPresent()) {
+            throw new RuntimeException("이미 즐겨찾기한 페이지입니다.");
+        }
+        
         FavoritePage favoritePage = new FavoritePage();
-        // ... 구현 필요
+        favoritePage.setUser(user);
+        favoritePage.setBook(book);
+        favoritePage.setPageNumber(pageNumber);
+        
         return favoritePageRepository.save(favoritePage);
     }
     
     public FavoriteQuote createFavoriteQuote(Long userId, Long bookId, Integer pageNumber, String content) {
-        // 실제 구현에서는 Book과 User 존재 여부 확인 필요
+        // User 존재 여부 확인
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+        
+        // Book 존재 여부 확인
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new RuntimeException("책을 찾을 수 없습니다."));
+        
+        // 내용 유효성 검사
+        if (content == null || content.trim().isEmpty()) {
+            throw new RuntimeException("문장 내용은 필수입니다.");
+        }
+        
+        // 중복 확인 (같은 사용자가 같은 책의 같은 페이지에 같은 내용을 이미 즐겨찾기했는지)
+        Optional<FavoriteQuote> existingQuote = favoriteQuoteRepository
+                .findByUser_UserIdAndBook_BookIdAndPageNumberAndContent(userId, bookId, pageNumber, content.trim());
+        
+        if (existingQuote.isPresent()) {
+            throw new RuntimeException("이미 즐겨찾기한 문장입니다.");
+        }
+        
         FavoriteQuote favoriteQuote = new FavoriteQuote();
-        // ... 구현 필요
+        favoriteQuote.setUser(user);
+        favoriteQuote.setBook(book);
+        favoriteQuote.setPageNumber(pageNumber);
+        favoriteQuote.setContent(content.trim());
+        
         return favoriteQuoteRepository.save(favoriteQuote);
     }
     
