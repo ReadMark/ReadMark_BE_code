@@ -1,0 +1,113 @@
+{
+  "users": [
+    {
+      "name": "홍길동",
+      "username": "hong123",
+      "email": "hong@example.com",
+      "password": "password123"
+    },
+    {
+      "name": "김철수",
+      "username": "kim456",
+      "email": "kim@example.com",
+      "password": "password456"
+    }
+  ],
+  "books": [
+    {
+      "title": "자바의 정석",
+      "author": "남궁성",
+      "publisher": "도우출판",
+      "coverImageUrl": "https://example.com/java_cover.jpg"
+    },
+    {
+      "title": "스프링 부트 완전정복",
+      "author": "이일민",
+      "publisher": "위키북스",
+      "coverImageUrl": "https://example.com/spring_cover.jpg"
+    },
+    {
+      "title": "데이터베이스 설계와 구축",
+      "author": "이석호",
+      "publisher": "한빛미디어",
+      "coverImageUrl": "https://example.com/db_cover.jpg"
+    }
+  ],
+  "readingSessions": [
+    {
+      "userId": 1,
+      "bookId": 1,
+      "sessionNotes": "자바 기초 공부 시작"
+    },
+    {
+      "userId": 1,
+      "bookId": 2,
+      "sessionNotes": "스프링 프레임워크 학습"
+    }
+  ],
+  "testImages": [
+    {
+      "userId": 1,
+      "bookId": 1,
+      "pageNumber": 1,
+      "deviceInfo": "ESP32-CAM",
+      "captureTime": "2025-01-14 12:30:00"
+    },
+    {
+      "userId": 1,
+      "bookId": 1,
+      "pageNumber": 2,
+      "deviceInfo": "ESP32-CAM",
+      "captureTime": "2025-01-14 12:35:00"
+    },
+    {
+      "userId": 1,
+      "bookId": 2,
+      "pageNumber": 1,
+      "deviceInfo": "Test-Device",
+      "captureTime": "2025-01-14 13:00:00"
+    }
+  ],
+  "apiEndpoints": {
+    "baseUrl": "http://43.200.102.14:5000",
+    "endpoints": {
+      "imageUpload": "/api/image/upload",
+      "esp32Upload": "/api/esp32/upload",
+      "books": "/api/books",
+      "users": "/api/users",
+      "readingSessions": "/api/reading-sessions",
+      "readingStats": "/api/reading-stats"
+    }
+  },
+  "testScenarios": [
+    {
+      "name": "완전한 독서 플로우",
+      "steps": [
+        "1. 사용자 등록",
+        "2. 책 추가",
+        "3. 독서 세션 시작",
+        "4. 이미지 업로드 (여러 페이지)",
+        "5. 독서 세션 종료",
+        "6. 통계 조회"
+      ]
+    },
+    {
+      "name": "ESP32 자동 업로드",
+      "steps": [
+        "1. ESP32에서 이미지 촬영",
+        "2. 자동으로 서버에 업로드",
+        "3. OCR 처리 및 페이지 번호 추출",
+        "4. 데이터베이스에 저장"
+      ]
+    },
+    {
+      "name": "오류 처리 테스트",
+      "steps": [
+        "1. 잘못된 사용자 ID로 업로드",
+        "2. 빈 이미지 업로드",
+        "3. 너무 큰 이미지 업로드",
+        "4. 잘못된 형식의 이미지 업로드"
+      ]
+    }
+  ]
+}

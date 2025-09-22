@@ -34,7 +34,7 @@ public class UserBook {
     private LocalDateTime updatedAt;
 
     public enum Status {
-        NOW_READ, WANNA_READ, READ_DONE
+        NOW_READ, WANNA_READ, READ_DONE, READING, COMPLETED
     }
 
     @PrePersist

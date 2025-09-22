@@ -29,9 +29,8 @@ public class BookPage {
     
     @Column(length = 500)
     private String imageUrl;
-    
-    @Lob
-    @Column(columnDefinition = "BLOB")
+
+    @Column(columnDefinition = "MEDIUMBLOB")
     private byte[] imageData;
     
     @Column(nullable = false)

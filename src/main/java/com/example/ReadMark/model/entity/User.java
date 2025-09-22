@@ -1,12 +1,11 @@
 package com.example.ReadMark.model.entity;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -32,22 +31,13 @@ public class User {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // 관계 설정
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    @JsonManagedReference
-    private List<UserBook> userBooks;
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    @JsonManagedReference
-    private List<ReadingLog> readingLogs;
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    @JsonManagedReference
-    private List<FavoritePage> favoritePages;
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    @JsonManagedReference
-    private List<FavoriteQuote> favoriteQuotes;
+    // 관계 설정 - LazyInitializationException 방지를 위해 제거
+    // 필요시 별도 API로 관계 데이터 조회
+    
+    // 임시로 userBooks 필드를 추가하되 @JsonIgnore로 JSON 직렬화에서 제외
+    @Transient
+    @JsonIgnore
+    private Object userBooks;
 
     @PrePersist
     protected void onCreate() {

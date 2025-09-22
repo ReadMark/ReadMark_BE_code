@@ -1,6 +1,6 @@
 package com.example.ReadMark.model.entity;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -29,15 +29,15 @@ public class Book {
     private LocalDateTime createdAt;
 
     @OneToMany(mappedBy = "book", cascade = CascadeType.ALL)
-    @JsonManagedReference
+    @JsonIgnore
     private List<UserBook> userBooks;
 
     @OneToMany(mappedBy = "book", cascade = CascadeType.ALL)
-    @JsonManagedReference
+    @JsonIgnore
     private List<FavoritePage> favoritePages;
 
     @OneToMany(mappedBy = "book", cascade = CascadeType.ALL)
-    @JsonManagedReference
+    @JsonIgnore
     private List<FavoriteQuote> favoriteQuotes;
 
     @PrePersist

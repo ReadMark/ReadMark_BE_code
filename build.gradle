@@ -45,14 +45,14 @@ dependencies {
 	// Google Vision API (via Google Cloud BOM for consistent versions)
 	implementation platform('com.google.cloud:libraries-bom:26.44.0')
 	implementation 'com.google.cloud:google-cloud-vision'
-	
+
 	// 이미지 처리
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	
 	// JSON 처리
 	implementation 'com.fasterxml.jackson.core:jackson-databind'
 
-	//web socket
+	// 웹소켓 의존성 추가
 	implementation 'org.springframework.boot:spring-boot-starter-websocket'
 }
 
@@ -74,3 +74,7 @@ clean {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+bootJar {
+	archiveFileName = "ReadMark-0.0.1-SNAPSHOT.jar"
+}
+

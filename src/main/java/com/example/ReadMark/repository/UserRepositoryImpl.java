@@ -1,7 +1,6 @@
 package com.example.ReadMark.repository;
 
 import com.example.ReadMark.model.entity.QUser;
-import com.example.ReadMark.model.entity.QUserBook;
 import com.example.ReadMark.model.entity.User;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.springframework.stereotype.Repository;
@@ -20,11 +19,9 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
     @Override
     public Optional<User> findByEmailWithUserBooks(String email) {
         QUser user = QUser.user;
-        QUserBook userBook = QUserBook.userBook;
         
         User result = queryFactory
                 .selectFrom(user)
-                .leftJoin(user.userBooks, userBook).fetchJoin()
                 .where(user.email.eq(email))
                 .fetchOne();
         
@@ -47,11 +44,9 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
     @Override
     public Optional<User> findUserWithAllRelations(Long userId) {
         QUser user = QUser.user;
-        QUserBook userBook = QUserBook.userBook;
         
         User result = queryFactory
                 .selectFrom(user)
-                .leftJoin(user.userBooks, userBook).fetchJoin()
                 .where(user.userId.eq(userId))
                 .fetchOne();
         

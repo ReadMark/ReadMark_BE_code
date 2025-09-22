@@ -1,13 +1,14 @@
 package com.example.ReadMark.controller;
 
-import com.example.ReadMark.handler.ESP32WebSocketHandler;
 import com.example.ReadMark.model.dto.BookPageDTO;
 import com.example.ReadMark.service.BookPageService;
 import com.example.ReadMark.service.GoogleVisionService;
 import com.example.ReadMark.service.ReadingPeriodService;
 import com.example.ReadMark.service.ReadingSessionService;
+import com.example.ReadMark.handler.ESP32WebSocketHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.env.Environment;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,6 +30,7 @@ public class ESP32UploadController {
     private final BookPageService bookPageService;
     private final ReadingSessionService readingSessionService;
     private final ReadingPeriodService readingPeriodService;
+    private final Environment environment;
     private final ESP32WebSocketHandler webSocketHandler;
     
     /**
@@ -90,6 +92,15 @@ public class ESP32UploadController {
             // 독서 기간 계산 (시작일과 종료일)
             Map<String, Object> readingPeriod = readingPeriodService.calculateReadingPeriod(userId);
             
+            // 웹소켓으로 OCR 결과 전송
+            webSocketHandler.sendOCRResult(bookPage.getPageNumber());
+            
+            // 웹소켓으로 이미지 업로드 완료 알림
+            webSocketHandler.sendImageUploadComplete(bookPage.getPageNumber());
+            
+            // 웹소켓으로 독서 세션 정보 전송
+            webSocketHandler.sendReadingSessionInfo(bookPage.getPageNumber());
+            
             // ESP32 응답 형식에 맞춰 응답 구성
             response.put("success", true);
             response.put("message", "이미지 업로드 성공");
@@ -107,12 +118,8 @@ public class ESP32UploadController {
             log.info("ESP32 이미지 업로드 완료: 페이지 {}", 
                     bookPage.getPageNumber());
             
-            // WebSocket으로 연결된 ESP32 클라이언트들에게 이미지 업로드 알림 전송
-            webSocketHandler.notifyImageUpload(
-                image.getOriginalFilename() != null ? image.getOriginalFilename() : "esp32_image.jpg",
-                image.getSize(),
-                true // 책 페이지로 인식됨
-            );
+            // 이미지 업로드 완료 로그
+            log.info("ESP32 이미지 업로드 완료: 페이지 {}", bookPage.getPageNumber());
             
             return ResponseEntity.ok(response);
             
@@ -134,36 +141,65 @@ public class ESP32UploadController {
         response.put("status", "OK");
         response.put("message", "ESP32 Upload Service is running");
         response.put("timestamp", LocalDateTime.now());
-        response.put("connectedWebSocketClients", webSocketHandler.getConnectedClientCount());
+        response.put("status", "REST API 모드");
         return ResponseEntity.ok(response);
     }
     
     /**
-     * WebSocket 연결 상태 확인
+     * ESP32 상태 확인 (REST API 모드)
      */
-    @GetMapping("/ws/status")
-    public ResponseEntity<?> getWebSocketStatus() {
+    @GetMapping("/status")
+    public ResponseEntity<?> getStatus() {
         Map<String, Object> response = new HashMap<>();
-        response.put("connectedClients", webSocketHandler.getConnectedClientCount());
+        response.put("status", "OK");
+        response.put("mode", "REST API");
         response.put("timestamp", LocalDateTime.now());
+        response.put("serverPort", environment.getProperty("server.port", "5000"));
+        response.put("serverAddress", environment.getProperty("server.address", "0.0.0.0"));
         return ResponseEntity.ok(response);
     }
     
     /**
-     * 테스트용 WebSocket 메시지 전송
+     * ESP32 테스트 메시지 (REST API 모드)
      */
-    @PostMapping("/ws/test")
+    @PostMapping("/test")
     public ResponseEntity<?> sendTestMessage(@RequestParam("message") String message) {
         Map<String, Object> response = new HashMap<>();
         try {
-            webSocketHandler.broadcast("test", message);
             response.put("success", true);
-            response.put("message", "테스트 메시지가 전송되었습니다");
-            response.put("recipients", webSocketHandler.getConnectedClientCount());
+            response.put("message", "테스트 메시지 수신: " + message);
+            response.put("timestamp", LocalDateTime.now());
+            response.put("mode", "REST API");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             response.put("success", false);
-            response.put("message", "메시지 전송 실패: " + e.getMessage());
+            response.put("message", "메시지 처리 실패: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
+     * ESP32 진단 정보 (REST API 모드)
+     */
+    @GetMapping("/diagnostics")
+    public ResponseEntity<?> getDiagnostics() {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            response.put("serverPort", environment.getProperty("server.port", "5000"));
+            response.put("serverAddress", environment.getProperty("server.address", "0.0.0.0"));
+            response.put("mode", "REST API");
+            response.put("corsEnabled", true);
+            response.put("timestamp", LocalDateTime.now());
+            response.put("endpoints", Map.of(
+                "upload", "/upload/",
+                "health", "/upload/health",
+                "status", "/upload/status",
+                "test", "/upload/test",
+                "diagnostics", "/upload/diagnostics"
+            ));
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("error", "진단 정보 수집 실패: " + e.getMessage());
             return ResponseEntity.internalServerError().body(response);
         }
     }
