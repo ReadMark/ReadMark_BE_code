@@ -6,6 +6,8 @@ public final class ResponseMessage {
     public static final String USER_JOIN_SUCCESS = "회원가입이 완료되었습니다.";
     public static final String USER_LOGIN_SUCCESS = "로그인이 완료되었습니다.";
     public static final String USER_LOGIN_FAIL = "이메일 또는 비밀번호가 올바르지 않습니다.";
+    public static final String USER_INFO_SUCCESS = "사용자 정보를 조회했습니다.";
+    public static final String USER_INFO_FAIL = "사용자 정보 조회에 실패했습니다: ";
     public static final String USER_LIST_SUCCESS = "사용자 목록을 조회했습니다.";
     public static final String USER_LIST_FAIL = "사용자 목록 조회에 실패했습니다: ";
     

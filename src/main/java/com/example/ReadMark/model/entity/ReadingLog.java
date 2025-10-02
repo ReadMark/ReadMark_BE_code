@@ -24,7 +24,6 @@ public class ReadingLog {
 
     private LocalDate readDate;
     private int pagesRead = 0;
-    private Integer readingDurationMinutes = 0; // 독서 시간 (분)
     private LocalDateTime createdAt;
 
     @PrePersist

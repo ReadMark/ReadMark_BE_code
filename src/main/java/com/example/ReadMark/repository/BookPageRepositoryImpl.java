@@ -4,9 +4,13 @@ import com.example.ReadMark.model.entity.QBookPage;
 import com.example.ReadMark.model.entity.QBook;
 import com.example.ReadMark.model.entity.QUser;
 import com.example.ReadMark.model.entity.BookPage;
+import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.core.types.dsl.DateTemplate;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -120,9 +124,8 @@ public class BookPageRepositoryImpl implements BookPageRepositoryCustom {
         return queryFactory
                 .selectFrom(bookPage)
                 .where(bookPage.user.userId.eq(userId)
-                        .and(bookPage.book.bookId.eq(bookId))
-                        .and(bookPage.confidence.between(minConfidence, maxConfidence)))
-                .orderBy(bookPage.confidence.desc())
+                        .and(bookPage.book.bookId.eq(bookId)))
+                .orderBy(bookPage.capturedAt.desc())
                 .fetch();
     }
     
@@ -150,5 +153,80 @@ public class BookPageRepositoryImpl implements BookPageRepositoryCustom {
                         .and(bookPage.capturedAt.between(startDate, endDate)))
                 .orderBy(bookPage.capturedAt.asc())
                 .fetch();
+    }
+    
+    @Override
+    public int countByUserIdAndDate(Long userId, java.time.LocalDate date) {
+        QBookPage bookPage = QBookPage.bookPage;
+        
+        LocalDateTime startOfDay = date.atStartOfDay();
+        LocalDateTime endOfDay = date.atTime(23, 59, 59);
+        
+        return Math.toIntExact(queryFactory
+                .selectFrom(bookPage)
+                .where(bookPage.user.userId.eq(userId)
+                        .and(bookPage.capturedAt.between(startOfDay, endOfDay)))
+                .fetchCount());
+    }
+    
+    @Override
+    public Long countDistinctReadingDaysByUserId(Long userId) {
+        QBookPage bookPage = QBookPage.bookPage;
+        
+        DateTemplate<LocalDate> dateTemplate = Expressions.dateTemplate(LocalDate.class, "DATE({0})", bookPage.capturedAt);
+        
+        return queryFactory
+                .select(dateTemplate.countDistinct())
+                .from(bookPage)
+                .where(bookPage.user.userId.eq(userId))
+                .fetchOne();
+    }
+    
+    @Override
+    public List<java.time.LocalDate> findDistinctReadingDatesByUserId(Long userId) {
+        QBookPage bookPage = QBookPage.bookPage;
+        
+        DateTemplate<LocalDate> dateTemplate = Expressions.dateTemplate(LocalDate.class, "DATE({0})", bookPage.capturedAt);
+        
+        return queryFactory
+                .select(dateTemplate)
+                .from(bookPage)
+                .where(bookPage.user.userId.eq(userId))
+                .distinct()
+                .orderBy(dateTemplate.asc())
+                .fetch();
+    }
+    
+    @Override
+    public Long countStampDaysByUserId(Long userId) {
+        QBookPage bookPage = QBookPage.bookPage;
+        
+        // MySQL only_full_group_by 호환을 위해 더 간단한 방식으로 수정
+        DateTemplate<LocalDate> dateTemplate = Expressions.dateTemplate(LocalDate.class, "DATE({0})", bookPage.capturedAt);
+        
+        // 먼저 모든 날짜별 페이지 수를 조회
+        List<LocalDate> allDates = queryFactory
+                .select(dateTemplate)
+                .from(bookPage)
+                .where(bookPage.user.userId.eq(userId))
+                .groupBy(dateTemplate)
+                .fetch();
+        
+        // 각 날짜별로 페이지 수를 확인하여 20페이지 이상인 날짜만 카운트
+        long stampDays = 0;
+        for (LocalDate date : allDates) {
+            long pageCount = queryFactory
+                    .select(bookPage.count())
+                    .from(bookPage)
+                    .where(bookPage.user.userId.eq(userId)
+                            .and(dateTemplate.eq(date)))
+                    .fetchOne();
+            
+            if (pageCount >= 20) {
+                stampDays++;
+            }
+        }
+        
+        return stampDays;
     }
 }

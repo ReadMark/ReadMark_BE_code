@@ -10,5 +10,4 @@ import java.time.LocalDate;
 public class DailyReadingDTO {
     private LocalDate date;
     private int pagesRead;
-    private int readingTime; // 분 단위
 }

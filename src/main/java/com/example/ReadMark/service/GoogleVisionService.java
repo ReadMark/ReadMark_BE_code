@@ -125,7 +125,7 @@ public class GoogleVisionService {
                                 log.info("4자리 숫자 감지: {} → {} (앞자리 제거)", bestNumber, processedNumber);
                             }
                             
-                            // extractedText 필드 제거됨 - pageNumber만 사용
+                            // pageNumber만 사용
                             result.setEstimatedPageNumber(Integer.parseInt(processedNumber));
                             log.info("인식된 페이지 번호: {} → {} (총 {}개 발견, 신뢰도: {})", 
                                     bestNumber, processedNumber, numbers.size(), maxConfidence);
@@ -142,6 +142,12 @@ public class GoogleVisionService {
                     result.setConfidence(maxConfidence > 0 ? maxConfidence : 0.8);
                     result.setLanguage("ko");
                     result.setIsBookPage(true);
+                    
+                    // 전체 텍스트 추출 (첫 번째 텍스트 주석 사용) - 주석 처리됨
+                    // if (!res.getTextAnnotationsList().isEmpty()) {
+                    //     String fullText = res.getTextAnnotationsList().get(0).getDescription();
+                    //     result.setExtractedText(fullText);
+                    // }
                     
                     log.info("숫자 추출 완료: {} 개", numbers.size());
                     

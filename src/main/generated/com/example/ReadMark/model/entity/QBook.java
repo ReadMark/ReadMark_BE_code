@@ -30,8 +30,6 @@ public class QBook extends EntityPathBase<Book> {
 
     public final ListPath<FavoritePage, QFavoritePage> favoritePages = this.<FavoritePage, QFavoritePage>createList("favoritePages", FavoritePage.class, QFavoritePage.class, PathInits.DIRECT2);
 
-    public final ListPath<FavoriteQuote, QFavoriteQuote> favoriteQuotes = this.<FavoriteQuote, QFavoriteQuote>createList("favoriteQuotes", FavoriteQuote.class, QFavoriteQuote.class, PathInits.DIRECT2);
-
     public final DatePath<java.time.LocalDate> publishedAt = createDate("publishedAt", java.time.LocalDate.class);
 
     public final StringPath publisher = createString("publisher");

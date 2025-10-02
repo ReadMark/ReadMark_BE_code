@@ -30,8 +30,6 @@ public class QReadingLog extends EntityPathBase<ReadingLog> {
 
     public final DatePath<java.time.LocalDate> readDate = createDate("readDate", java.time.LocalDate.class);
 
-    public final NumberPath<Integer> readingDurationMinutes = createNumber("readingDurationMinutes", Integer.class);
-
     public final QUser user;
 
     public QReadingLog(String variable) {

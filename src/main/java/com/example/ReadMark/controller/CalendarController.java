@@ -1,14 +1,18 @@
 package com.example.ReadMark.controller;
 
 import com.example.ReadMark.model.dto.CalendarMonthDTO;
+import com.example.ReadMark.model.dto.StampDTO;
 import com.example.ReadMark.service.CalendarService;
+import com.example.ReadMark.service.StampService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -19,100 +23,7 @@ import java.util.Map;
 public class CalendarController {
     
     private final CalendarService calendarService;
-    
-    /**
-     * 특정 월의 캘린더 데이터를 조회합니다.
-     */
-    @GetMapping("/{userId}/{year}/{month}")
-    public ResponseEntity<?> getCalendarMonth(
-            @PathVariable Long userId,
-            @PathVariable int year,
-            @PathVariable int month) {
-        
-        Map<String, Object> response = new HashMap<>();
-        
-        try {
-            // 월 유효성 검사
-            if (month < 1 || month > 12) {
-                response.put("success", false);
-                response.put("message", "월은 1-12 사이의 값이어야 합니다.");
-                return ResponseEntity.badRequest().body(response);
-            }
-            
-            // 년도 유효성 검사
-            if (year < 2020 || year > 2030) {
-                response.put("success", false);
-                response.put("message", "년도는 2020-2030 사이의 값이어야 합니다.");
-                return ResponseEntity.badRequest().body(response);
-            }
-            
-            CalendarMonthDTO calendar = calendarService.getCalendarMonth(userId, year, month);
-            
-            response.put("success", true);
-            response.put("calendar", calendar);
-            response.put("message", "캘린더 데이터 조회 성공");
-            
-            log.info("캘린더 조회 완료: 사용자 {}, {}-{}", userId, year, month);
-            
-            return ResponseEntity.ok(response);
-            
-        } catch (Exception e) {
-            log.error("캘린더 조회 중 오류 발생: 사용자 {}, {}-{}", userId, year, month, e);
-            response.put("success", false);
-            response.put("message", "캘린더 조회 실패: " + e.getMessage());
-            return ResponseEntity.internalServerError().body(response);
-        }
-    }
-    
-    /**
-     * 현재 월의 캘린더 데이터를 조회합니다.
-     */
-    @GetMapping("/{userId}/current")
-    public ResponseEntity<?> getCurrentMonth(@PathVariable Long userId) {
-        LocalDate now = LocalDate.now();
-        return getCalendarMonth(userId, now.getYear(), now.getMonthValue());
-    }
-    
-    /**
-     * 특정 날짜의 상세 독서 정보를 조회합니다.
-     */
-    @GetMapping("/{userId}/day/{year}/{month}/{day}")
-    public ResponseEntity<?> getDayDetail(
-            @PathVariable Long userId,
-            @PathVariable int year,
-            @PathVariable int month,
-            @PathVariable int day) {
-        
-        Map<String, Object> response = new HashMap<>();
-        
-        try {
-            LocalDate date = LocalDate.of(year, month, day);
-            Map<String, Object> detail = calendarService.getDayDetail(userId, date);
-            
-            response.put("success", true);
-            response.put("detail", detail);
-            response.put("message", "일별 상세 정보 조회 성공");
-            
-            log.info("일별 상세 조회 완료: 사용자 {}, {}", userId, date);
-            
-            return ResponseEntity.ok(response);
-            
-        } catch (Exception e) {
-            log.error("일별 상세 조회 중 오류 발생: 사용자 {}, {}-{}-{}", userId, year, month, day, e);
-            response.put("success", false);
-            response.put("message", "일별 상세 조회 실패: " + e.getMessage());
-            return ResponseEntity.internalServerError().body(response);
-        }
-    }
-    
-    /**
-     * 오늘의 독서 정보를 조회합니다.
-     */
-    @GetMapping("/{userId}/today")
-    public ResponseEntity<?> getTodayDetail(@PathVariable Long userId) {
-        LocalDate today = LocalDate.now();
-        return getDayDetail(userId, today.getYear(), today.getMonthValue(), today.getDayOfMonth());
-    }
+    private final StampService stampService;
     
     /**
      * 캘린더 통계 요약을 조회합니다.
@@ -127,25 +38,33 @@ public class CalendarController {
             
             // 이번 달 통계
             Map<String, Object> currentMonthStats = new HashMap<>();
-            currentMonthStats.put("totalReadingDays", currentMonth.getTotalReadingDays());
-            currentMonthStats.put("totalPages", currentMonth.getTotalPages());
-            currentMonthStats.put("totalMinutes", currentMonth.getTotalMinutes());
-            currentMonthStats.put("maxConsecutiveDays", currentMonth.getMaxConsecutiveDays());
-            currentMonthStats.put("currentConsecutiveDays", currentMonth.getCurrentConsecutiveDays());
             currentMonthStats.put("readingRate", currentMonth.getSummary().get("readingRate"));
             
-            // 지난 달 통계 (비교용)
-            LocalDate lastMonth = now.minusMonths(1);
-            CalendarMonthDTO lastMonthData = calendarService.getCalendarMonth(userId, lastMonth.getYear(), lastMonth.getMonthValue());
+            // 전체 통계 조회 (최대 연속 독서일, 총 읽은 날 수)
+            Map<String, Object> totalStats = calendarService.getTotalReadingStats(userId);
+            currentMonthStats.put("maxConsecutiveDays", totalStats.get("maxConsecutiveDays"));
+            currentMonthStats.put("totalReadingDays", totalStats.get("totalReadingDays"));
             
-            Map<String, Object> lastMonthStats = new HashMap<>();
-            lastMonthStats.put("totalReadingDays", lastMonthData.getTotalReadingDays());
-            lastMonthStats.put("totalPages", lastMonthData.getTotalPages());
-            lastMonthStats.put("totalMinutes", lastMonthData.getTotalMinutes());
+            // 오늘 읽은 페이지 수
+            Map<String, Object> todayStats = calendarService.getTodayReadingStats(userId, now);
+            currentMonthStats.put("todayPagesRead", todayStats.get("todayPagesRead"));
+            
+            // 도장 관련 정보
+            long totalStamps = stampService.getTotalStampCount(userId);
+            currentMonthStats.put("totalStamps", totalStamps);
+            
+            // 모든 도장 받은 날짜 정보 (페이지 수 제거)
+            List<StampDTO> allStamps = stampService.getUserStamps(userId);
+            currentMonthStats.put("stampDates", allStamps.stream()
+                .map(stamp -> stamp.getFormattedDate())
+                .collect(java.util.stream.Collectors.toList()));
+            
+            // 현재 연속으로 안 읽은 날 수 계산
+            int consecutiveNonReadingDays = calculateConsecutiveNonReadingDays(userId, now);
+            currentMonthStats.put("consecutiveNonReadingDays", consecutiveNonReadingDays);
             
             response.put("success", true);
             response.put("currentMonth", currentMonthStats);
-            response.put("lastMonth", lastMonthStats);
             response.put("message", "캘린더 통계 조회 성공");
             
             log.info("캘린더 통계 조회 완료: 사용자 {}", userId);
@@ -156,6 +75,65 @@ public class CalendarController {
             log.error("캘린더 통계 조회 중 오류 발생: 사용자 {}", userId, e);
             response.put("success", false);
             response.put("message", "캘린더 통계 조회 실패: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+    
+    /**
+     * 현재 연속으로 안 읽은 날 수를 계산합니다.
+     */
+    private int calculateConsecutiveNonReadingDays(Long userId, LocalDate today) {
+        try {
+            // 오늘부터 역산하여 연속으로 독서하지 않은 날 수 계산
+            int consecutiveNonReadingDays = 0;
+            LocalDate checkDate = today;
+            
+            while (checkDate.isAfter(LocalDate.of(2020, 1, 1))) { // 너무 오래 전까지는 확인하지 않음
+                // 해당 날짜에 독서 기록이 있는지 확인
+                boolean hasReadingOnDate = calendarService.hasReadingOnDate(userId, checkDate);
+                
+                if (hasReadingOnDate) {
+                    break; // 독서 기록이 있으면 중단
+                }
+                
+                consecutiveNonReadingDays++;
+                checkDate = checkDate.minusDays(1);
+            }
+            
+            return consecutiveNonReadingDays;
+            
+        } catch (Exception e) {
+            log.error("연속 비독서일 계산 중 오류 발생: 사용자 {}", userId, e);
+            return 0;
+        }
+    }
+    
+    /**
+     * 현재 연속으로 읽은 날 수를 조회합니다. (메인페이지용)
+     * 하루 안 읽으면 기록이 깨지는 연속 독서일
+     */
+    @GetMapping("/{userId}/current-consecutive")
+    public ResponseEntity<?> getCurrentConsecutiveDays(@PathVariable Long userId) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            LocalDate now = LocalDate.now();
+            CalendarMonthDTO currentMonth = calendarService.getCalendarMonth(userId, now.getYear(), now.getMonthValue());
+            
+            int currentConsecutiveDays = currentMonth.getCurrentConsecutiveDays();
+            
+            response.put("success", true);
+            response.put("currentConsecutiveDays", currentConsecutiveDays);
+            response.put("message", "현재 연속 독서일 조회 성공");
+            
+            log.info("현재 연속 독서일 조회 완료: 사용자 {}, 연속일수 {}", userId, currentConsecutiveDays);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("현재 연속 독서일 조회 중 오류 발생: 사용자 {}", userId, e);
+            response.put("success", false);
+            response.put("message", "현재 연속 독서일 조회 실패: " + e.getMessage());
             return ResponseEntity.internalServerError().body(response);
         }
     }

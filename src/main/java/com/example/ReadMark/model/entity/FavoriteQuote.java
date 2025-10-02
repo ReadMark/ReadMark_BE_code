@@ -19,12 +19,14 @@ public class FavoriteQuote {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne
-    @JoinColumn(name = "book_id", nullable = false)
-    private Book book;
-
     private Integer pageNumber;
     private String content;
+    @Column(length = 255)
+    private String bookTitle;      // 책 제목
+    
+    @Column(length = 1000)
+    private String coverImageUrl;  // 개별 표지 이미지 URL
+    
     private LocalDateTime createdAt;
 
     @PrePersist

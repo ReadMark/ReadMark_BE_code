@@ -6,6 +6,7 @@ import com.example.ReadMark.service.BookService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.List;
@@ -21,13 +22,36 @@ public class BookController {
     private final BookService bookService;
     
     @PostMapping
-    public ResponseEntity<?> createBook(@RequestBody BookDTO bookDTO) {
+    public ResponseEntity<?> createBook(@RequestParam("title") String title,
+                                       @RequestParam("author") String author,
+                                       @RequestParam("coverImage") MultipartFile coverImage) {
         try {
-            Book book = bookService.createBook(bookDTO);
+            // 필수 필드 검증
+            if (title == null || title.trim().isEmpty()) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", false);
+                response.put("message", "책 제목은 필수입니다.");
+                return ResponseEntity.badRequest().body(response);
+            }
+            if (author == null || author.trim().isEmpty()) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", false);
+                response.put("message", "작가명은 필수입니다.");
+                return ResponseEntity.badRequest().body(response);
+            }
+            if (coverImage == null || coverImage.isEmpty()) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", false);
+                response.put("message", "책 표지는 필수입니다.");
+                return ResponseEntity.badRequest().body(response);
+            }
+            
+            Book book = bookService.createBookWithCover(title, author, coverImage);
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "책이 등록되었습니다.");
             response.put("bookId", book.getBookId());
+            response.put("coverImageUrl", book.getCoverImageUrl());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             Map<String, Object> response = new HashMap<>();
@@ -51,6 +75,24 @@ public class BookController {
             response.put("success", false);
             response.put("message", "책 검색에 실패했습니다: " + e.getMessage());
             return ResponseEntity.badRequest().body(response);
+        }
+    }
+    
+    @GetMapping
+    public ResponseEntity<?> getAllBooks() {
+        try {
+            List<BookDTO> books = bookService.getAllBooks();
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("books", books);
+            response.put("count", books.size());
+            response.put("message", "책 목록 조회 성공");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "책 목록 조회에 실패했습니다: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
         }
     }
     
@@ -78,4 +120,106 @@ public class BookController {
             return ResponseEntity.internalServerError().body(response);
         }
     }
+    
+    @PutMapping("/{bookId}")
+    public ResponseEntity<?> updateBook(@PathVariable Long bookId, @RequestBody BookDTO bookDTO) {
+        try {
+            BookDTO updatedBook = bookService.updateBook(bookId, bookDTO);
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "책 정보가 수정되었습니다.");
+            response.put("book", updatedBook);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "책 정보 수정에 실패했습니다: " + e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+    
+    @DeleteMapping("/{bookId}")
+    public ResponseEntity<?> deleteBook(@PathVariable Long bookId) {
+        try {
+            bookService.deleteBook(bookId);
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "책이 삭제되었습니다.");
+            response.put("deletedBookId", bookId);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "책 삭제에 실패했습니다: " + e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+    
+    /**
+     * 책 표지를 업로드합니다.
+     */
+    @PostMapping("/{bookId}/cover")
+    public ResponseEntity<?> uploadBookCover(@PathVariable Long bookId, 
+                                           @RequestParam("coverImage") MultipartFile coverImage) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            if (coverImage.isEmpty()) {
+                response.put("success", false);
+                response.put("message", "표지 이미지가 필요합니다.");
+                return ResponseEntity.badRequest().body(response);
+            }
+            
+            // 파일 크기 제한 (5MB)
+            if (coverImage.getSize() > 5 * 1024 * 1024) {
+                response.put("success", false);
+                response.put("message", "표지 이미지 크기는 5MB를 초과할 수 없습니다.");
+                return ResponseEntity.badRequest().body(response);
+            }
+            
+            // 이미지 타입 검증
+            String contentType = coverImage.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                response.put("success", false);
+                response.put("message", "이미지 파일만 업로드 가능합니다.");
+                return ResponseEntity.badRequest().body(response);
+            }
+            
+            String coverImageUrl = bookService.uploadBookCover(bookId, coverImage);
+            
+            response.put("success", true);
+            response.put("message", "책 표지가 업로드되었습니다.");
+            response.put("coverImageUrl", coverImageUrl);
+            response.put("bookId", bookId);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "책 표지 업로드 실패: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+    
+    /**
+     * 책 표지를 삭제합니다.
+     */
+    @DeleteMapping("/{bookId}/cover")
+    public ResponseEntity<?> deleteBookCover(@PathVariable Long bookId) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            bookService.deleteBookCover(bookId);
+            
+            response.put("success", true);
+            response.put("message", "책 표지가 삭제되었습니다.");
+            response.put("bookId", bookId);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "책 표지 삭제 실패: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+    
 }

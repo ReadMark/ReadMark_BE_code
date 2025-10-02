@@ -76,6 +76,13 @@ public class UserBookService {
         return userBookRepository.save(userBook);
     }
     
+    public void deleteUserBook(Long userBookId) {
+        if (!userBookRepository.existsById(userBookId)) {
+            throw new RuntimeException("사용자 책을 찾을 수 없습니다.");
+        }
+        userBookRepository.deleteById(userBookId);
+    }
+    
     public UserBookDTO convertToDTO(UserBook userBook) {
         UserBookDTO dto = new UserBookDTO();
         dto.setUserBookId(userBook.getUserBookId());
@@ -89,9 +96,7 @@ public class UserBookService {
         bookDTO.setBookId(userBook.getBook().getBookId());
         bookDTO.setTitle(userBook.getBook().getTitle());
         bookDTO.setAuthor(userBook.getBook().getAuthor());
-        bookDTO.setPublisher(userBook.getBook().getPublisher());
         bookDTO.setCoverImageUrl(userBook.getBook().getCoverImageUrl());
-        bookDTO.setPublishedAt(userBook.getBook().getPublishedAt());
         
         dto.setBook(bookDTO);
         return dto;

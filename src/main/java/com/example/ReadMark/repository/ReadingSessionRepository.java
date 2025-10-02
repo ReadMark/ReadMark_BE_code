@@ -44,4 +44,29 @@ public interface ReadingSessionRepository extends JpaRepository<ReadingSession, 
      */
     @Query("SELECT COALESCE(SUM(TIMESTAMPDIFF(MINUTE, rs.startTime, rs.endTime)), 0) FROM ReadingSession rs WHERE rs.user.userId = :userId AND rs.endTime IS NOT NULL")
     Long getTotalReadingMinutesByUserId(@Param("userId") Long userId);
+    
+    /**
+     * 사용자의 고유한 독서 날짜 수를 조회합니다.
+     */
+    @Query("SELECT COUNT(DISTINCT DATE(rs.startTime)) FROM ReadingSession rs WHERE rs.user.userId = :userId")
+    long countDistinctReadingDaysByUserId(@Param("userId") Long userId);
+    
+    /**
+     * 사용자의 모든 독서 세션을 조회합니다 (CalendarService용).
+     */
+    List<ReadingSession> findByUser_UserId(Long userId);
+    
+    /**
+     * 특정 사용자와 책의 모든 독서 세션을 조회합니다.
+     */
+    List<ReadingSession> findByUser_UserIdAndBook_BookId(Long userId, Long bookId);
+    
+    /**
+     * 특정 사용자와 책의 총 독서 시간을 분 단위로 조회합니다.
+     */
+    @Query("SELECT COALESCE(SUM(TIMESTAMPDIFF(MINUTE, rs.startTime, rs.endTime)), 0) " +
+           "FROM ReadingSession rs " +
+           "WHERE rs.user.userId = :userId AND rs.book.bookId = :bookId " +
+           "AND rs.endTime IS NOT NULL")
+    Long getTotalReadingMinutesByUserIdAndBookId(@Param("userId") Long userId, @Param("bookId") Long bookId);
 }

@@ -16,4 +16,10 @@ public interface ReadingLogRepositoryCustom {
     List<LocalDate> findDistinctReadingDates(Long userId);
     Integer getMaxConsecutiveReadingDays(Long userId);
     Integer getTotalReadingDays(Long userId);
+    
+    // 최적화된 총 읽은 날 수 조회 (COUNT 쿼리 사용)
+    Long countTotalReadingDays(Long userId);
+    
+    // 도장개수 계산 (20페이지 이상 읽은 날 수)
+    Long countStampDays(Long userId);
 }

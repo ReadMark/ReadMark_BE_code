@@ -88,4 +88,14 @@ public class UserBookController {
             return ResponseEntity.badRequest().body(ApiResponse.error(ResponseMessage.USERBOOK_PAGE_UPDATE_FAIL + e.getMessage()));
         }
     }
+    
+    @DeleteMapping("/{userBookId}")
+    public ResponseEntity<ApiResponse<Void>> deleteUserBook(@PathVariable Long userBookId) {
+        try {
+            userBookService.deleteUserBook(userBookId);
+            return ResponseEntity.ok(ApiResponse.success("사용자-책 관계가 삭제되었습니다.", null));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("사용자-책 관계 삭제 실패: " + e.getMessage()));
+        }
+    }
 }

@@ -11,6 +11,7 @@ import com.example.ReadMark.repository.ReadingSessionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -27,10 +28,12 @@ public class CalendarService {
     private final BookPageRepository bookPageRepository;
     private final ReadingLogRepository readingLogRepository;
     private final ReadingSessionRepository readingSessionRepository;
+    private final ReadingLogService readingLogService;
     
     /**
      * 특정 월의 캘린더 데이터를 조회합니다.
      */
+    @Transactional(readOnly = true)
     public CalendarMonthDTO getCalendarMonth(Long userId, int year, int month) {
         CalendarMonthDTO calendar = new CalendarMonthDTO(year, month);
         
@@ -91,9 +94,6 @@ public class CalendarService {
         
         boolean hasReading = !readingSessions.isEmpty() || !bookPages.isEmpty();
         int totalPages = bookPages.size();
-        int totalMinutes = readingSessions.stream()
-                .mapToInt(session -> session.getReadingDurationMinutes() != null ? session.getReadingDurationMinutes().intValue() : 0)
-                .sum();
         int sessionCount = readingSessions.size();
         
         LocalDateTime firstReadingTime = null;
@@ -117,7 +117,7 @@ public class CalendarService {
             }
         }
         
-        CalendarDayDTO dayData = new CalendarDayDTO(date, hasReading, totalPages, totalMinutes, sessionCount);
+        CalendarDayDTO dayData = new CalendarDayDTO(date, hasReading, totalPages, 0, sessionCount);
         dayData.setFirstReadingTime(firstReadingTime);
         dayData.setLastReadingTime(lastReadingTime);
         
@@ -226,10 +226,146 @@ public class CalendarService {
         detail.put("bookPages", bookPages);
         detail.put("totalSessions", readingSessions.size());
         detail.put("totalPages", bookPages.size());
-        detail.put("totalMinutes", readingSessions.stream()
-                .mapToInt(session -> session.getReadingDurationMinutes() != null ? session.getReadingDurationMinutes().intValue() : 0)
-                .sum());
         
         return detail;
+    }
+    
+    /**
+     * 오늘의 독서 통계를 조회합니다.
+     * - 오늘 읽은 페이지 수
+     * - 읽은 날 수
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getTodayReadingStats(Long userId, LocalDate today) {
+        LocalDateTime startOfDay = today.atStartOfDay();
+        LocalDateTime endOfDay = today.atTime(23, 59, 59);
+        
+        // 오늘의 독서 세션
+        List<ReadingSession> todaySessions = readingSessionRepository
+                .findByUser_UserIdAndStartTimeBetweenOrderByStartTimeAsc(userId, startOfDay, endOfDay);
+        
+        // 오늘의 책 페이지
+        List<BookPage> todayPages = bookPageRepository
+                .findByUser_UserIdAndCapturedAtBetween(userId, startOfDay, endOfDay);
+        
+        
+        // 오늘 읽은 페이지 수 (BookPage 기반)
+        int todayPagesRead = todayPages.size();
+        
+        // ReadingLog에서도 확인 (백업용)
+        Integer readingLogPages = readingLogService.getTodayPagesRead(userId);
+        if (readingLogPages != null && readingLogPages > todayPagesRead) {
+            todayPagesRead = readingLogPages; // ReadingLog가 더 많으면 그것을 사용
+        }
+        
+        // 총 읽은 날 수 (이중 검증)
+        long totalReadingDays = readingLogService.getTotalReadingDaysWithValidation(userId);
+        
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("date", today);
+        stats.put("todayPagesRead", todayPagesRead);
+        stats.put("totalReadingDays", totalReadingDays);
+        stats.put("todaySessions", todaySessions.size());
+        stats.put("hasReadingToday", !todaySessions.isEmpty() || !todayPages.isEmpty());
+        
+        log.info("오늘의 독서 통계 조회 완료: 사용자 {}, 날짜 {}, 페이지 {}개", 
+                userId, today, todayPagesRead);
+        
+        return stats;
+    }
+    
+    /**
+     * 전체 독서 통계를 조회합니다.
+     * - 총 독서 시간
+     * - 총 읽은 페이지 수
+     * - 총 읽은 날 수
+     * - 연속 독서 일수
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getTotalReadingStats(Long userId) {
+        // 전체 독서 세션
+        List<ReadingSession> allSessions = readingSessionRepository.findByUser_UserId(userId);
+        
+        // 전체 책 페이지
+        List<BookPage> allPages = bookPageRepository.findByUser_UserId(userId);
+        
+        // 총 읽은 페이지 수
+        int totalPagesRead = allPages.size();
+        
+        // 총 읽은 날 수 (이중 검증)
+        long totalReadingDays = readingLogService.getTotalReadingDaysWithValidation(userId);
+        
+        // 최대 연속 독서 일수 계산 (이중 검증)
+        int maxConsecutiveDays = readingLogService.getMaxConsecutiveReadingDaysWithValidation(userId);
+        
+        // 도장개수 계산 (20페이지 이상 읽은 날 수)
+        long totalStampDays = readingLogService.getTotalStampDaysWithValidation(userId);
+        
+        // 평균 페이지 수 (읽은 날 기준)
+        double averagePagesPerDay = totalReadingDays > 0 ? (double) totalPagesRead / totalReadingDays : 0;
+        
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalPagesRead", totalPagesRead);
+        stats.put("totalReadingDays", totalReadingDays);
+        stats.put("maxConsecutiveDays", maxConsecutiveDays);
+        stats.put("totalStampDays", totalStampDays);  // 도장개수 추가
+        stats.put("averagePagesPerDay", Math.round(averagePagesPerDay * 100.0) / 100.0);
+        stats.put("totalSessions", allSessions.size());
+        
+        log.info("전체 독서 통계 조회 완료: 사용자 {}, 총 페이지 {}개, 총 읽은 날 {}일", 
+                userId, totalPagesRead, totalReadingDays);
+        
+        return stats;
+    }
+    
+    /**
+     * 연속 독서 일수를 계산합니다.
+     */
+    private int calculateConsecutiveReadingDays(Long userId) {
+        // 최근 30일간의 독서 데이터를 조회하여 연속일 계산
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(30);
+        
+        List<CalendarDayDTO> recentDays = getCalendarDays(userId, startDate, endDate);
+        
+        int consecutiveDays = 0;
+        
+        // 오늘부터 역순으로 확인
+        for (int i = recentDays.size() - 1; i >= 0; i--) {
+            CalendarDayDTO day = recentDays.get(i);
+            if (day.isHasReading()) {
+                consecutiveDays++;
+            } else {
+                break;
+            }
+        }
+        
+        return consecutiveDays;
+    }
+    
+    /**
+     * 특정 날짜에 독서 기록이 있는지 확인합니다.
+     */
+    @Transactional(readOnly = true)
+    public boolean hasReadingOnDate(Long userId, LocalDate date) {
+        try {
+            LocalDateTime startOfDay = date.atStartOfDay();
+            LocalDateTime endOfDay = date.atTime(23, 59, 59);
+            
+            // 해당 날짜의 독서 세션 조회
+            List<ReadingSession> readingSessions = readingSessionRepository
+                    .findByUser_UserIdAndStartTimeBetweenOrderByStartTimeAsc(userId, startOfDay, endOfDay);
+            
+            // 해당 날짜의 책 페이지 조회
+            List<BookPage> bookPages = bookPageRepository
+                    .findByUser_UserIdAndCapturedAtBetween(userId, startOfDay, endOfDay);
+            
+            // 독서 기록이 있으면 true
+            return !readingSessions.isEmpty() || !bookPages.isEmpty();
+            
+        } catch (Exception e) {
+            log.error("독서 기록 확인 중 오류 발생: 사용자 {}, 날짜 {}", userId, date, e);
+            return false;
+        }
     }
 }

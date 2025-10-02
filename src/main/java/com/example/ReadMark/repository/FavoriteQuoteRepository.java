@@ -8,7 +8,7 @@ import java.util.Optional;
 public interface FavoriteQuoteRepository extends JpaRepository<FavoriteQuote, Long>, FavoriteQuoteRepositoryCustom {
     
     /**
-     * 사용자, 책, 페이지 번호, 내용으로 즐겨찾기 문장 중복 확인
+     * 사용자, 페이지 번호, 내용으로 즐겨찾기 문장 중복 확인
      */
-    Optional<FavoriteQuote> findByUser_UserIdAndBook_BookIdAndPageNumberAndContent(Long userId, Long bookId, Integer pageNumber, String content);
+    Optional<FavoriteQuote> findByUser_UserIdAndPageNumberAndContent(Long userId, Integer pageNumber, String content);
 }

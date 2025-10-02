@@ -84,7 +84,6 @@ public class ESP32SessionController {
                 response.put("message", "독서 세션이 종료되었습니다.");
                 response.put("totalPagesRead", session.getTotalPagesRead());
                 response.put("totalNumbersRead", session.getTotalNumbersRead());
-                response.put("readingDurationMinutes", session.getReadingDurationMinutes());
                 response.put("endTime", session.getEndTime());
                 response.put("userId", userId);
                 

@@ -67,12 +67,7 @@ public class BookPageService {
             bookPage.setUser(user);
             bookPage.setBook(book);
             bookPage.setPageNumber(pageNumber);
-            bookPage.setImageData(imageBytes);
             bookPage.setCapturedAt(captureTime != null ? captureTime : LocalDateTime.now());
-            bookPage.setConfidence(visionResult.getConfidence());
-            bookPage.setDeviceInfo(deviceInfo);
-            bookPage.setLanguage(visionResult.getLanguage());
-            bookPage.setNumberCount(visionResult.getNumberCount());
             
             BookPage savedPage = bookPageRepository.save(bookPage);
             log.info("새 페이지 생성 완료: 사용자 {}, 책 {}, 페이지 {}", userId, bookId, pageNumber);
@@ -91,11 +86,7 @@ public class BookPageService {
     private BookPageDTO updateExistingPage(BookPage existingPage, byte[] imageBytes, 
                                          VisionAnalysisResultDTO visionResult, 
                                          String deviceInfo, LocalDateTime captureTime) {
-        existingPage.setImageData(imageBytes);
         existingPage.setCapturedAt(captureTime != null ? captureTime : LocalDateTime.now());
-        existingPage.setConfidence(visionResult.getConfidence());
-        existingPage.setDeviceInfo(deviceInfo);
-        existingPage.setNumberCount(visionResult.getNumberCount());
         
         BookPage updatedPage = bookPageRepository.save(existingPage);
         log.info("기존 페이지 업데이트 완료: 페이지 ID {}", updatedPage.getPageId());
@@ -170,13 +161,29 @@ public class BookPageService {
         dto.setBookId(bookPage.getBook().getBookId());
         dto.setUserId(bookPage.getUser().getUserId());
         dto.setPageNumber(bookPage.getPageNumber());
-        dto.setImageUrl(bookPage.getImageUrl());
         dto.setCapturedAt(bookPage.getCapturedAt());
         dto.setCreatedAt(bookPage.getCreatedAt());
-        dto.setConfidence(bookPage.getConfidence());
-        dto.setDeviceInfo(bookPage.getDeviceInfo());
-        dto.setLanguage(bookPage.getLanguage());
-        dto.setNumberCount(bookPage.getNumberCount());
         return dto;
+    }
+    
+    /**
+     * BookPageDTO를 저장
+     */
+    public BookPage saveBookPage(BookPageDTO bookPageDTO) {
+        BookPage bookPage = new BookPage();
+        
+        // Book과 User 엔티티 조회
+        Book book = bookRepository.findById(bookPageDTO.getBookId())
+                .orElseThrow(() -> new RuntimeException("책을 찾을 수 없습니다: " + bookPageDTO.getBookId()));
+        User user = userRepository.findById(bookPageDTO.getUserId())
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다: " + bookPageDTO.getUserId()));
+        
+        // BookPage 엔티티 설정
+        bookPage.setBook(book);
+        bookPage.setUser(user);
+        bookPage.setPageNumber(bookPageDTO.getPageNumber());
+        bookPage.setCapturedAt(bookPageDTO.getCapturedAt() != null ? bookPageDTO.getCapturedAt() : LocalDateTime.now());
+        
+        return bookPageRepository.save(bookPage);
     }
 }

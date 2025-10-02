@@ -36,10 +36,6 @@ public class Book {
     @JsonIgnore
     private List<FavoritePage> favoritePages;
 
-    @OneToMany(mappedBy = "book", cascade = CascadeType.ALL)
-    @JsonIgnore
-    private List<FavoriteQuote> favoriteQuotes;
-
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

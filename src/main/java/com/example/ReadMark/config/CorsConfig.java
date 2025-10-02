@@ -19,7 +19,7 @@ public class CorsConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         log.info("CORS 설정 초기화");
         registry.addMapping("/**")
-                .allowedOrigins("*")
+                .allowedOrigins("*", "http://localhost:5173", "http://127.0.0.1:5173")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(false)
@@ -27,19 +27,20 @@ public class CorsConfig implements WebMvcConfigurer {
         
         // 웹소켓을 위한 특별한 CORS 설정
         registry.addMapping("/ws/**")
-                .allowedOrigins("*")
+                .allowedOrigins("*", "http://localhost:5173", "http://127.0.0.1:5173")
                 .allowedMethods("GET", "POST", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(false)
                 .maxAge(3600);
         
-        log.info("CORS 설정 완료 - 모든 origin 허용");
+        log.info("CORS 설정 완료 - localhost:5173 포함 모든 origin 허용");
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173", "http://127.0.0.1:5173"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(false);

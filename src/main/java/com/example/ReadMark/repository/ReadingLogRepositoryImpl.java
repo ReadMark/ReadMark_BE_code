@@ -142,4 +142,27 @@ public class ReadingLogRepositoryImpl implements ReadingLogRepositoryCustom {
     public Integer getTotalReadingDays(Long userId) {
         return findDistinctReadingDates(userId).size();
     }
+    
+    @Override
+    public Long countTotalReadingDays(Long userId) {
+        QReadingLog readingLog = QReadingLog.readingLog;
+        
+        return queryFactory
+                .select(readingLog.readDate.countDistinct())
+                .from(readingLog)
+                .where(readingLog.user.userId.eq(userId))
+                .fetchOne();
+    }
+    
+    @Override
+    public Long countStampDays(Long userId) {
+        QReadingLog readingLog = QReadingLog.readingLog;
+        
+        return queryFactory
+                .select(readingLog.readDate.countDistinct())
+                .from(readingLog)
+                .where(readingLog.user.userId.eq(userId)
+                        .and(readingLog.pagesRead.goe(20)))  // 20페이지 이상
+                .fetchOne();
+    }
 }

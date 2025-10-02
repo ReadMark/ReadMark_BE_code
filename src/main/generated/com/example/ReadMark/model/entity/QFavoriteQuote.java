@@ -22,9 +22,11 @@ public class QFavoriteQuote extends EntityPathBase<FavoriteQuote> {
 
     public static final QFavoriteQuote favoriteQuote = new QFavoriteQuote("favoriteQuote");
 
-    public final QBook book;
+    public final StringPath bookTitle = createString("bookTitle");
 
     public final StringPath content = createString("content");
+
+    public final StringPath coverImageUrl = createString("coverImageUrl");
 
     public final DateTimePath<java.time.LocalDateTime> createdAt = createDateTime("createdAt", java.time.LocalDateTime.class);
 
@@ -52,7 +54,6 @@ public class QFavoriteQuote extends EntityPathBase<FavoriteQuote> {
 
     public QFavoriteQuote(Class<? extends FavoriteQuote> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
-        this.book = inits.isInitialized("book") ? new QBook(forProperty("book")) : null;
         this.user = inits.isInitialized("user") ? new QUser(forProperty("user")) : null;
     }
 

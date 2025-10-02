@@ -20,7 +20,7 @@ import java.util.Map;
 @RequestMapping("/api/image")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:8080"})
+@CrossOrigin(origins = "*")
 public class ImageUploadController {
     
     private final GoogleVisionService visionService;
@@ -28,14 +28,78 @@ public class ImageUploadController {
     private final BookPageService bookPageService;
     
     /**
-     * 임베디드 기기에서 책 페이지 이미지를 업로드하고 DB에 저장합니다.
+     * 프론트엔드용 복잡한 이미지 업로드 API
+     * 사용자 ID, 책 ID 등 추가 정보를 받고 DB에 저장합니다.
      */
+    @PostMapping("/upload/simple")
+    public ResponseEntity<?> uploadImageSimple(@RequestParam("image") MultipartFile image) {
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            // 이미지 유효성 검사
+            if (image.isEmpty()) {
+                response.put("success", false);
+                response.put("message", "이미지 파일이 필요합니다.");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            // 이미지 크기 제한 (16MB - MEDIUMBLOB 크기)
+            if (image.getSize() > 16 * 1024 * 1024) {
+                response.put("success", false);
+                response.put("message", "이미지 크기가 너무 큽니다. (최대 16MB)");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            // 이미지 타입 검증
+            String contentType = image.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                response.put("success", false);
+                response.put("message", "이미지 파일만 업로드 가능합니다.");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            log.info("프론트엔드 이미지 업로드 시작: 크기 {} bytes", image.getSize());
+            byte[] imageBytes = image.getBytes();
+
+            var visionResult = visionService.extractTextFromImage(imageBytes);
+
+            if (!visionResult.isSuccess()) {
+                response.put("success", false);
+                response.put("message", "OCR 처리 실패: " + visionResult.getErrorMessage());
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            // OCR 결과를 서버 콘솔 로그에 출력
+            log.info("=== 프론트엔드 OCR 결과 ===");
+            log.info("추출된 숫자들: {}", visionResult.getDetectedNumbers());
+            log.info("추정 페이지 번호: {}", visionResult.getEstimatedPageNumber());
+            log.info("신뢰도: {}", visionResult.getConfidence());
+            log.info("숫자 개수: {}", visionResult.getNumberCount());
+            log.info("==========================");
+
+            // 단순한 응답 구성
+            response.put("success", true);
+            response.put("pageNumber", visionResult.getEstimatedPageNumber());
+            response.put("confidence", visionResult.getConfidence());
+            response.put("detectedNumbers", visionResult.getDetectedNumbers());
+
+            log.info("프론트엔드 OCR 처리 완료: 페이지 번호 {}", visionResult.getEstimatedPageNumber());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("프론트엔드 이미지 업로드 처리 중 오류 발생", e);
+            response.put("success", false);
+            response.put("message", "이미지 처리 중 오류가 발생했습니다: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
     @PostMapping("/upload")
     public ResponseEntity<?> uploadBookImage(
             @RequestParam("userId") Long userId,
             @RequestParam("bookId") Long bookId,
             @RequestParam("image") MultipartFile image,
-            @RequestParam(value = "deviceInfo", required = false) String deviceInfo,
             @RequestParam(value = "captureTime", required = false) String captureTime) {
         
         Map<String, Object> response = new HashMap<>();
@@ -48,10 +112,10 @@ public class ImageUploadController {
                 return ResponseEntity.badRequest().body(response);
             }
             
-            // 이미지 크기 제한 (10MB)
-            if (image.getSize() > 10 * 1024 * 1024) {
+            // 이미지 크기 제한 (16MB - MEDIUMBLOB 크기)
+            if (image.getSize() > 16 * 1024 * 1024) {
                 response.put("success", false);
-                response.put("message", "이미지 크기가 너무 큽니다. (최대 10MB)");
+                response.put("message", "이미지 크기가 너무 큽니다. (최대 16MB)");
                 return ResponseEntity.badRequest().body(response);
             }
             
@@ -63,7 +127,7 @@ public class ImageUploadController {
                 return ResponseEntity.badRequest().body(response);
             }
             
-            log.info("책 페이지 이미지 업로드 시작: 사용자 {}, 책 {}, 크기 {} bytes", 
+            log.info("프론트엔드 이미지 업로드 시작: 사용자 {}, 책 {}, 크기 {} bytes", 
                     userId, bookId, image.getSize());
             
             // 이미지를 바이트 배열로 변환
@@ -89,32 +153,40 @@ public class ImageUploadController {
             
             // BookPageService를 통해 페이지 생성 및 DB 저장
             BookPageDTO bookPage = bookPageService.createBookPage(
-                userId, bookId, imageBytes, deviceInfo, parsedCaptureTime);
+                userId, bookId, imageBytes, "Web Browser", parsedCaptureTime);
             
             // 독서 세션에 이미지 추가
             readingSessionService.addImageToSession(userId, imageBytes, bookPage.getPageNumber());
             
-            // 응답 데이터 구성
+            // OCR 결과를 서버 콘솔 로그에 출력
+            log.info("=== 프론트엔드 OCR 결과 ===");
+            log.info("사용자 ID: {}", userId);
+            log.info("책 ID: {}", bookId);
+            log.info("페이지 ID: {}", bookPage.getPageId());
+            log.info("페이지 번호: {}", bookPage.getPageNumber());
+            log.info("촬영 시간: {}", bookPage.getCapturedAt());
+            log.info("기기 정보: Web Browser");
+            log.info("================================");
+            
+            // 상세한 응답 구성
             Map<String, Object> pageData = new HashMap<>();
             pageData.put("pageId", bookPage.getPageId());
             pageData.put("pageNumber", bookPage.getPageNumber());
-            pageData.put("confidence", bookPage.getConfidence());
-            pageData.put("language", bookPage.getLanguage());
-            pageData.put("numberCount", bookPage.getNumberCount());
             pageData.put("capturedAt", bookPage.getCapturedAt());
             
             response.put("success", true);
             response.put("message", "책 페이지가 성공적으로 저장되었습니다.");
             response.put("page", pageData);
-            response.put("deviceInfo", deviceInfo);
+            response.put("userId", userId);
+            response.put("bookId", bookId);
             
-            log.info("책 페이지 저장 완료: 사용자 {}, 책 {}, 페이지 {}", 
+            log.info("프론트엔드 이미지 업로드 완료: 사용자 {}, 책 {}, 페이지 {}", 
                     userId, bookId, bookPage.getPageNumber());
             
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            log.error("책 페이지 업로드 처리 중 오류 발생", e);
+            log.error("프론트엔드 이미지 업로드 처리 중 오류 발생", e);
             response.put("success", false);
             response.put("message", "책 페이지 처리 중 오류가 발생했습니다: " + e.getMessage());
             return ResponseEntity.internalServerError().body(response);
@@ -165,7 +237,6 @@ public class ImageUploadController {
                 response.put("message", "독서 세션이 종료되었습니다.");
                 response.put("totalPagesRead", session.getTotalPagesRead());
                 response.put("totalNumbersRead", session.getTotalNumbersRead());
-                response.put("readingDurationMinutes", session.getReadingDurationMinutes());
                 response.put("endTime", session.getEndTime());
             } else {
                 response.put("success", false);

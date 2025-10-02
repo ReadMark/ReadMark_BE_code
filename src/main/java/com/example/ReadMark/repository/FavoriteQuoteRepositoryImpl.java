@@ -32,29 +32,16 @@ public class FavoriteQuoteRepositoryImpl implements FavoriteQuoteRepositoryCusto
     @Override
     public List<FavoriteQuote> findFavoriteQuotesWithBookInfo(Long userId) {
         QFavoriteQuote favoriteQuote = QFavoriteQuote.favoriteQuote;
-        QBook book = QBook.book;
         QUser user = QUser.user;
         
         return queryFactory
                 .selectFrom(favoriteQuote)
-                .join(favoriteQuote.book, book).fetchJoin()
                 .join(favoriteQuote.user, user).fetchJoin()
                 .where(favoriteQuote.user.userId.eq(userId))
                 .orderBy(favoriteQuote.createdAt.desc())
                 .fetch();
     }
     
-    @Override
-    public List<FavoriteQuote> findByUserIdAndBookId(Long userId, Long bookId) {
-        QFavoriteQuote favoriteQuote = QFavoriteQuote.favoriteQuote;
-        
-        return queryFactory
-                .selectFrom(favoriteQuote)
-                .where(favoriteQuote.user.userId.eq(userId)
-                        .and(favoriteQuote.book.bookId.eq(bookId)))
-                .orderBy(favoriteQuote.createdAt.desc())
-                .fetch();
-    }
     
     @Override
     public List<FavoriteQuote> findByUserIdAndPageRange(Long userId, int minPage, int maxPage) {

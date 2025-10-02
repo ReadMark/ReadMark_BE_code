@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "book_pages")
@@ -27,27 +28,11 @@ public class BookPage {
     @Column(nullable = false)
     private Integer pageNumber;
     
-    @Column(length = 500)
-    private String imageUrl;
-
-    @Column(columnDefinition = "MEDIUMBLOB")
-    private byte[] imageData;
-    
     @Column(nullable = false)
     private LocalDateTime capturedAt;
     
     @Column(nullable = false)
     private LocalDateTime createdAt;
-    
-    private Double confidence;
-    
-    @Column(length = 100)
-    private String deviceInfo;
-    
-    @Column(length = 20)
-    private String language;
-    
-    private Integer numberCount;
     
     @PrePersist
     protected void onCreate() {

@@ -16,12 +16,5 @@ public class ReadingSessionDTO {
     private LocalDateTime endTime;
     private Integer totalPagesRead;
     private Integer totalNumbersRead;
-    private Long readingDurationMinutes;
     private String sessionNotes;
-    
-    // 독서 시간 계산 (분 단위)
-    public Long getReadingDurationMinutes() {
-        if (startTime == null || endTime == null) return 0L;
-        return java.time.Duration.between(startTime, endTime).toMinutes();
-    }
 }

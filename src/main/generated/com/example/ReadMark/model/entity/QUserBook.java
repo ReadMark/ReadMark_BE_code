@@ -28,6 +28,8 @@ public class QUserBook extends EntityPathBase<UserBook> {
 
     public final NumberPath<Integer> currentPage = createNumber("currentPage", Integer.class);
 
+    public final BooleanPath favorite = createBoolean("favorite");
+
     public final EnumPath<UserBook.Status> status = createEnum("status", UserBook.Status.class);
 
     public final DateTimePath<java.time.LocalDateTime> updatedAt = createDateTime("updatedAt", java.time.LocalDateTime.class);

@@ -42,6 +42,24 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
     }
     
     @Override
+    public Optional<User> findByUsernameAndPassword(String username, String password) {
+        QUser user = QUser.user;
+        
+        // null 체크
+        if (username == null || password == null) {
+            return Optional.empty();
+        }
+        
+        User result = queryFactory
+                .selectFrom(user)
+                .where(user.username.eq(username)
+                        .and(user.password.eq(password)))
+                .fetchOne();
+        
+        return Optional.ofNullable(result);
+    }
+    
+    @Override
     public Optional<User> findUserWithAllRelations(Long userId) {
         QUser user = QUser.user;
         

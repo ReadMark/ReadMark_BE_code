@@ -26,19 +26,7 @@ public class QBookPage extends EntityPathBase<BookPage> {
 
     public final DateTimePath<java.time.LocalDateTime> capturedAt = createDateTime("capturedAt", java.time.LocalDateTime.class);
 
-    public final NumberPath<Double> confidence = createNumber("confidence", Double.class);
-
     public final DateTimePath<java.time.LocalDateTime> createdAt = createDateTime("createdAt", java.time.LocalDateTime.class);
-
-    public final StringPath deviceInfo = createString("deviceInfo");
-
-    public final ArrayPath<byte[], Byte> imageData = createArray("imageData", byte[].class);
-
-    public final StringPath imageUrl = createString("imageUrl");
-
-    public final StringPath language = createString("language");
-
-    public final NumberPath<Integer> numberCount = createNumber("numberCount", Integer.class);
 
     public final NumberPath<Long> pageId = createNumber("pageId", Long.class);
 

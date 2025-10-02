@@ -89,7 +89,6 @@ class ReadMarkAPI:
                 if result.get('success'):
                     analysis = result.get('analysis', {})
                     print(f"이미지 분석 완료: {result.get('message')}")
-                    print(f"추출된 텍스트 길이: {len(analysis.get('extractedText', ''))}")
                     print(f"추출된 단어 수: {analysis.get('wordCount', 0)}")
                     print(f"텍스트 품질: {analysis.get('textQuality', 0):.1f}%")
                     print(f"추정 페이지 번호: {analysis.get('estimatedPageNumber', 'N/A')}")
@@ -100,6 +99,31 @@ class ReadMarkAPI:
                     
         except Exception as e:
             print(f"이미지 업로드 중 오류: {e}")
+            return None
+    
+    def upload_single_image_esp32_cam(self, image_path):
+        """ESP32-CAM용 단일 이미지 업로드 (페이지 번호만 추출)"""
+        url = f"{self.base_url}/upload/esp32-cam/upload"
+        
+        try:
+            with open(image_path, 'rb') as image_file:
+                files = {'image': image_file}
+                # deviceId 제거 - image만 전송
+                
+                response = self.session.post(url, files=files, timeout=30)
+                response.raise_for_status()
+                result = response.json()
+                
+                if result.get('success'):
+                    print(f"ESP32-CAM 페이지 번호 추출 성공: {result.get('message')}")
+                    print(f"페이지 번호: {result.get('pageNumber')}")
+                    return result
+                else:
+                    print(f"페이지 번호 추출 실패: {result.get('message')}")
+                    return None
+                    
+        except Exception as e:
+            print(f"ESP32-CAM 이미지 업로드 중 오류: {e}")
             return None
     
     def get_reading_stats(self, user_id):
@@ -225,8 +249,8 @@ def main():
             # 이미지 촬영
             image_path = f"book_page_{page_count:03d}.jpg"
             if camera.capture_image(image_path):
-                # 이미지 업로드 및 분석
-                result = api.upload_book_image(USER_ID, BOOK_ID, image_path, DEVICE_INFO)
+                # ESP32-CAM용 단일 이미지 업로드 (한 번에 하나의 이미지만)
+                result = api.upload_single_image_esp32_cam(image_path, "ESP32-CAM")
                 
                 if result and result.get('success'):
                     page_count += 1

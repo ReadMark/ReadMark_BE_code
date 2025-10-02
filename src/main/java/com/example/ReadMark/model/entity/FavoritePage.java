@@ -24,6 +24,7 @@ public class FavoritePage {
     private Book book;
 
     private int pageNumber;
+    
     private LocalDateTime createdAt;
 
     @PrePersist

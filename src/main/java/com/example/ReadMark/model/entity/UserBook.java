@@ -30,11 +30,12 @@ public class UserBook {
     private Status status;
 
     private int currentPage = 0;
+    private boolean favorite = false;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     public enum Status {
-        NOW_READ, WANNA_READ, READ_DONE, READING, COMPLETED
+        NOW_READ, WANNA_READ, READ_DONE
     }
 
     @PrePersist

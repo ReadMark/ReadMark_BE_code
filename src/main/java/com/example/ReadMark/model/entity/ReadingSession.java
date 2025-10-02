@@ -56,13 +56,4 @@ public class ReadingSession {
         updatedAt = LocalDateTime.now();
     }
     
-    /**
-     * 독서 시간을 분 단위로 계산합니다.
-     */
-    public Long getReadingDurationMinutes() {
-        if (startTime == null || endTime == null) {
-            return 0L;
-        }
-        return java.time.Duration.between(startTime, endTime).toMinutes();
-    }
 }

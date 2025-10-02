@@ -55,20 +55,53 @@ public class ReadingSessionService {
      * 독서 세션을 종료합니다.
      */
     public ReadingSessionDTO endReadingSession(Long userId) {
-        ReadingSessionDTO session = activeSessions.remove(userId);
-        if (session != null) {
-            session.setEndTime(LocalDateTime.now());
-            
-            // 독서 기록 생성
-            if (session.getTotalPagesRead() > 0) {
-                createReadingLog(session);
-            }
-            
-            log.info("독서 세션 종료: 사용자 {}, 총 {}페이지, {}분", 
-                    userId, session.getTotalPagesRead(), session.getReadingDurationMinutes());
+        ReadingSessionDTO session = activeSessions.get(userId);
+        if (session == null) {
+            throw new RuntimeException("활성 독서 세션이 없습니다.");
         }
         
+        // 종료 시간 설정
+        session.setEndTime(LocalDateTime.now());
+        
+        // 독서 기록 생성
+        createReadingLog(session);
+        
+        // 세션 제거
+        activeSessions.remove(userId);
+        
+        log.info("독서 세션 종료: 사용자 {}, 페이지 {}개", 
+                userId, session.getTotalPagesRead());
+        
         return session;
+    }
+    
+    /**
+     * 자동으로 독서 세션을 종료합니다 (타임아웃 또는 비활성 상태)
+     */
+    public void autoEndInactiveSessions() {
+        LocalDateTime now = LocalDateTime.now();
+        List<Long> inactiveUsers = new ArrayList<>();
+        
+        for (Map.Entry<Long, ReadingSessionDTO> entry : activeSessions.entrySet()) {
+            ReadingSessionDTO session = entry.getValue();
+            Long userId = entry.getKey();
+            
+            // 30분 이상 비활성 상태면 자동 종료
+            if (session.getStartTime() != null && 
+                java.time.Duration.between(session.getStartTime(), now).toMinutes() > 30) {
+                inactiveUsers.add(userId);
+            }
+        }
+        
+        // 비활성 세션들 종료
+        for (Long userId : inactiveUsers) {
+            try {
+                endReadingSession(userId);
+                log.info("비활성 독서 세션 자동 종료: 사용자 {}", userId);
+            } catch (Exception e) {
+                log.error("비활성 세션 종료 실패: 사용자 {}", userId, e);
+            }
+        }
     }
     
     /**
