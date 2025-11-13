@@ -1,7 +1,9 @@
 package com.example.ReadMark.config;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -9,16 +11,19 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 @Configuration
+@RequiredArgsConstructor
 public class WebConfig implements WebMvcConfigurer {
 
+    private final HttpRequestLoggingInterceptor httpRequestLoggingInterceptor;
+
+    // CORS 설정은 CorsConfig.java에서 처리
+
     @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**") // 모든 엔드포인트 허용
-                .allowedOrigins("*", "http://localhost:5173", "http://127.0.0.1:5173") // localhost:5173 포함 모든 출처 허용
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS") // 메서드 허용
-                .allowedHeaders("*") // 헤더 허용
-                .allowCredentials(false)
-                .maxAge(3600);
+    public void addInterceptors(InterceptorRegistry registry) {
+        // 모든 HTTP 요청을 로깅하는 인터셉터 등록
+        registry.addInterceptor(httpRequestLoggingInterceptor)
+                .addPathPatterns("/**")
+                .excludePathPatterns("/uploads/**", "/images/**"); // 정적 리소스는 제외
     }
 
     @Override

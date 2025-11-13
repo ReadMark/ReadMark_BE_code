@@ -16,15 +16,17 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/books")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*") // CORS 설정
+@CrossOrigin(origins = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS, RequestMethod.PATCH}, allowedHeaders = "*", allowCredentials = "false")
 public class BookController {
     
     private final BookService bookService;
     
-    @PostMapping
+    @PostMapping(consumes = "multipart/form-data")
     public ResponseEntity<?> createBook(@RequestParam("title") String title,
                                        @RequestParam("author") String author,
-                                       @RequestParam("coverImage") MultipartFile coverImage) {
+                                       @RequestParam("coverImage") MultipartFile coverImage,
+                                       @RequestParam(value = "totalBook", required = false) Integer totalBook,
+                                       @RequestParam(value = "total_book", required = false) Integer totalBookSnake) {
         try {
             // 필수 필드 검증
             if (title == null || title.trim().isEmpty()) {
@@ -46,7 +48,10 @@ public class BookController {
                 return ResponseEntity.badRequest().body(response);
             }
             
-            Book book = bookService.createBookWithCover(title, author, coverImage);
+            // totalBook 처리 (camelCase와 snake_case 둘 다 지원)
+            Integer finalTotalBook = totalBook != null ? totalBook : totalBookSnake;
+            
+            Book book = bookService.createBookWithCover(title, author, coverImage, finalTotalBook);
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "책이 등록되었습니다.");
@@ -85,6 +90,7 @@ public class BookController {
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("books", books);
+            response.put("totalBooks", books.size());  // 목록 조회 시 totalBooks 사용
             response.put("count", books.size());
             response.put("message", "책 목록 조회 성공");
             return ResponseEntity.ok(response);
@@ -158,7 +164,7 @@ public class BookController {
     /**
      * 책 표지를 업로드합니다.
      */
-    @PostMapping("/{bookId}/cover")
+    @PostMapping(value = "/{bookId}/cover", consumes = "multipart/form-data")
     public ResponseEntity<?> uploadBookCover(@PathVariable Long bookId, 
                                            @RequestParam("coverImage") MultipartFile coverImage) {
         Map<String, Object> response = new HashMap<>();
@@ -169,10 +175,10 @@ public class BookController {
                 return ResponseEntity.badRequest().body(response);
             }
             
-            // 파일 크기 제한 (5MB)
-            if (coverImage.getSize() > 5 * 1024 * 1024) {
+            // 파일 크기 제한 (20MB)
+            if (coverImage.getSize() > 20 * 1024 * 1024) {
                 response.put("success", false);
-                response.put("message", "표지 이미지 크기는 5MB를 초과할 수 없습니다.");
+                response.put("message", "표지 이미지 크기는 20MB를 초과할 수 없습니다.");
                 return ResponseEntity.badRequest().body(response);
             }
             

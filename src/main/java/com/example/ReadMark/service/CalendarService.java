@@ -190,18 +190,54 @@ public class CalendarService {
      * 현재 연속 독서일을 계산합니다.
      */
     private int calculateCurrentConsecutiveDays(List<CalendarDayDTO> days, LocalDate endDate) {
-        int consecutiveDays = 0;
-        
-        // 끝 날짜부터 역순으로 확인
-        for (int i = days.size() - 1; i >= 0; i--) {
-            CalendarDayDTO day = days.get(i);
-            if (day.isHasReading()) {
-                consecutiveDays++;
-            } else {
+        if (days == null || days.isEmpty()) {
+            return 0;
+        }
+
+        LocalDate today = LocalDate.now();
+
+        // 통계를 조회하는 월이 현재 월보다 뒤라면 현재 날짜 대신 해당 월의 마지막 날을 사용
+        if (today.isAfter(endDate)) {
+            today = endDate;
+        }
+
+        // 오늘 날짜에 해당하는 인덱스 탐색
+        int todayIndex = -1;
+        for (int i = 0; i < days.size(); i++) {
+            if (days.get(i).getDate().equals(today)) {
+                todayIndex = i;
                 break;
             }
         }
-        
+
+        if (todayIndex == -1) {
+            return 0;
+        }
+
+        // 오늘 읽지 않았다면 연속 기록은 종료된 것으로 간주
+        if (!days.get(todayIndex).isHasReading()) {
+            return 0;
+        }
+
+        int consecutiveDays = 1;
+        LocalDate expectedDate = today.minusDays(1);
+
+        for (int i = todayIndex - 1; i >= 0; i--) {
+            CalendarDayDTO day = days.get(i);
+
+            // 날짜가 끊기면 더 이상 연속이 아님
+            if (!day.getDate().equals(expectedDate)) {
+                break;
+            }
+
+            if (!day.isHasReading()) {
+                break;
+            }
+
+            consecutiveDays++;
+            expectedDate = expectedDate.minusDays(1);
+        }
+
         return consecutiveDays;
     }
     
@@ -316,6 +352,59 @@ public class CalendarService {
                 userId, totalPagesRead, totalReadingDays);
         
         return stats;
+    }
+
+    /**
+     * 사용자의 총 독서 시간을 분 단위로 반환합니다.
+     */
+    @Transactional(readOnly = true)
+    public Long getTotalReadingMinutes(Long userId) {
+        try {
+            Long minutes = readingSessionRepository.getTotalReadingMinutesByUserId(userId);
+            return minutes != null ? minutes : 0L;
+        } catch (Exception e) {
+            log.error("총 독서 시간 조회 실패: userId={}", userId, e);
+            return 0L;
+        }
+    }
+
+    /**
+     * 특정 책에 대해 사용자의 총 독서 시간을 분 단위로 반환합니다.
+     */
+    @Transactional(readOnly = true)
+    public Long getTotalReadingMinutesByBook(Long userId, Long bookId) {
+        try {
+            Long minutes = readingSessionRepository.getTotalReadingMinutesByUserIdAndBookId(userId, bookId);
+            return minutes != null ? minutes : 0L;
+        } catch (Exception e) {
+            log.error("총 독서 시간(책별) 조회 실패: userId={}, bookId={}", userId, bookId, e);
+            return 0L;
+        }
+    }
+
+    /**
+     * 오늘의 총 독서 시간을 분 단위로 반환합니다.
+     */
+    @Transactional(readOnly = true)
+    public Long getTodayReadingMinutes(Long userId, LocalDate today) {
+        try {
+            var startOfDay = today.atStartOfDay();
+            var endOfDay = today.atTime(23, 59, 59);
+            var sessions = readingSessionRepository
+                    .findByUser_UserIdAndStartTimeBetweenOrderByStartTimeAsc(userId, startOfDay, endOfDay);
+
+            long total = 0L;
+            for (var s : sessions) {
+                if (s.getStartTime() == null) continue;
+                var end = s.getEndTime() != null ? s.getEndTime() : java.time.LocalDateTime.now();
+                long minutes = java.time.Duration.between(s.getStartTime(), end).toMinutes();
+                if (minutes > 0) total += minutes;
+            }
+            return total;
+        } catch (Exception e) {
+            log.error("오늘 총 독서 시간 조회 실패: userId={}, date={}", userId, today, e);
+            return 0L;
+        }
     }
     
     /**

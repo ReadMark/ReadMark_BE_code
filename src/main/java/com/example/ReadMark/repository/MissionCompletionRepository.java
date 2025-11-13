@@ -19,4 +19,15 @@ public interface MissionCompletionRepository extends JpaRepository<MissionComple
     long countByUser_UserIdAndCompletedDate(Long userId, LocalDate completedDate);
     
     long countByUser_UserIdAndCompletedDateBetween(Long userId, LocalDate startDate, LocalDate endDate);
+    
+    List<MissionCompletion> findByUser_UserIdOrderByCompletedAtDesc(Long userId);
+    
+    List<MissionCompletion> findByUser_UserIdAndCompletedDateBetweenOrderByCompletedAtDesc(Long userId, LocalDate startDate, LocalDate endDate);
+    
+    @Query("SELECT mc FROM MissionCompletion mc " +
+           "JOIN FETCH mc.user u " +
+           "JOIN FETCH mc.mission m " +
+           "WHERE u.userId = :userId " +
+           "ORDER BY mc.completedAt DESC")
+    List<MissionCompletion> findByUser_UserIdWithFetchJoin(@Param("userId") Long userId);
 }

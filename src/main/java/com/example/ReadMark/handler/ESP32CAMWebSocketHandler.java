@@ -35,7 +35,7 @@ public class ESP32CAMWebSocketHandler implements WebSocketHandler {
         Map<String, Object> connectionMessage = new LinkedHashMap<>();
         connectionMessage.put("status", "connected" + "\n");
         connectionMessage.put("message", "ESP32-CAM 연결됨" + "\n");
-        connectionMessage.put("color", "#00FF00" + "\n"); // 초록색 - 연결 성공
+        connectionMessage.put("color", "#00FF00" + "\n");
         sendMessage(session, connectionMessage);
     }
 
@@ -112,20 +112,65 @@ public class ESP32CAMWebSocketHandler implements WebSocketHandler {
         
         log.info("ESP32-CAM에서 OCR 결과 수신 [{}]: {}", sessionId, data);
         
-        // OCR 결과를 ESP32 세션과 매칭
-        // 활성 세션에서 첫 번째 세션의 정보 사용 (ESP32 1개이므로)
+        // OCR 결과에서 사용자 ID와 책 ID 추출 시도
         Long bookId = null;
         Long userId = null;
         
-        for (Map.Entry<String, Long> entry : sessionService.getAllBookIds().entrySet()) {
-            bookId = entry.getValue();
-            break; // 첫 번째 세션만 사용
+        try {
+            // data가 Map인 경우 직접 추출
+            if (data instanceof Map) {
+                Map<String, Object> dataMap = (Map<String, Object>) data;
+                if (dataMap.containsKey("userId")) {
+                    userId = Long.valueOf(dataMap.get("userId").toString());
+                }
+                if (dataMap.containsKey("bookId")) {
+                    bookId = Long.valueOf(dataMap.get("bookId").toString());
+                }
+            }
+            
+            // OCR 결과 텍스트에서 사용자 ID 추출 시도 (예: "id: 2 page: 300")
+            if (userId == null && data instanceof Map) {
+                Map<String, Object> dataMap = (Map<String, Object>) data;
+                if (dataMap.containsKey("text")) {
+                    String text = dataMap.get("text").toString();
+                    if (text.contains("id:") && text.contains("page:")) {
+                        try {
+                            String[] parts = text.split("page:");
+                            if (parts.length > 0) {
+                                String idPart = parts[0].trim();
+                                if (idPart.contains("id:")) {
+                                    String idStr = idPart.substring(idPart.indexOf("id:") + 3).trim();
+                                    userId = Long.valueOf(idStr);
+                                    log.info("OCR 텍스트에서 사용자 ID 추출: {}", userId);
+                                }
+                            }
+                        } catch (Exception e) {
+                            log.warn("OCR 텍스트에서 사용자 ID 추출 실패: {}", e.getMessage());
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("OCR 결과에서 직접 사용자/책 ID 추출 실패: {}", e.getMessage());
         }
         
-        for (Map.Entry<String, Long> entry : sessionService.getAllUserIds().entrySet()) {
-            userId = entry.getValue();
-            break; // 첫 번째 세션만 사용
+        // 직접 추출이 실패한 경우 활성 세션에서 가져오기
+        if (userId == null || bookId == null) {
+            Map<String, Long> allBookIds = sessionService.getAllBookIds();
+            Map<String, Long> allUserIds = sessionService.getAllUserIds();
+            
+            log.info("ESP32-CAM 활성 세션 수: bookIds={}, userIds={}", allBookIds.size(), allUserIds.size());
+            
+            if (!allBookIds.isEmpty()) {
+                bookId = allBookIds.values().iterator().next();
+            }
+            
+            if (!allUserIds.isEmpty()) {
+                userId = allUserIds.values().iterator().next();
+            }
         }
+        
+        log.info("OCR 결과 처리용 사용자/책 ID: userId={}, bookId={}", userId, bookId);
         
         if (bookId != null && userId != null) {
             // OCR 결과를 데이터베이스에 저장

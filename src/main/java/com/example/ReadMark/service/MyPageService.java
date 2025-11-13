@@ -16,6 +16,7 @@ import com.example.ReadMark.repository.FavoriteQuoteRepository;
 import com.example.ReadMark.repository.ReadingSessionRepository;
 import com.example.ReadMark.repository.UserBookRepository;
 import com.example.ReadMark.repository.UserRepository;
+import com.example.ReadMark.service.StampService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +37,7 @@ public class MyPageService {
     private final FavoriteQuoteRepository favoriteQuoteRepository;
     private final ReadingLogService readingLogService;
     private final ReadingSessionRepository readingSessionRepository;
+    private final StampService stampService;
     
     public UserStatsDTO getUserStats(Long userId) {
         UserStatsDTO stats = new UserStatsDTO();
@@ -49,8 +51,8 @@ public class MyPageService {
         stats.setMaxConsecutiveDays(readingLogService.getMaxConsecutiveReadingDays(userId));
         stats.setTotalReadingDays(readingLogService.getTotalReadingDays(userId));
         
-        // 도장 개수 (20페이지 이상 읽은 날 수)
-        stats.setTotalStamps(readingLogService.getTotalStampDaysWithValidation(userId).intValue());
+        // 도장 개수 (실제 도장 테이블에서 조회)
+        stats.setTotalStamps((int) stampService.getTotalStampCount(userId));
         
         return stats;
     }

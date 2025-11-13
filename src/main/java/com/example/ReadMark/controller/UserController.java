@@ -20,7 +20,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS, RequestMethod.PATCH}, allowedHeaders = "*", allowCredentials = "false")
 public class UserController {
     
     private final UserService userService;
@@ -125,7 +125,7 @@ public class UserController {
     /**
      * 프로필 사진 업로드
      */
-    @PostMapping("/{userId}/profile-image")
+    @PostMapping(value = "/{userId}/profile-image", consumes = "multipart/form-data")
     public ResponseEntity<?> uploadProfileImage(@PathVariable Long userId, 
                                                @RequestParam("image") MultipartFile image) {
         Map<String, Object> response = new HashMap<>();
@@ -138,10 +138,10 @@ public class UserController {
                 return ResponseEntity.badRequest().body(response);
             }
             
-            // 이미지 크기 제한 (5MB)
-            if (image.getSize() > 5 * 1024 * 1024) {
+            // 이미지 크기 제한 (20MB)
+            if (image.getSize() > 20 * 1024 * 1024) {
                 response.put("success", false);
-                response.put("message", "이미지 크기가 너무 큽니다. (최대 5MB)");
+                response.put("message", "이미지 크기가 너무 큽니다. (최대 20MB)");
                 return ResponseEntity.badRequest().body(response);
             }
             

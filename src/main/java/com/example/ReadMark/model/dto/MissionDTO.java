@@ -20,4 +20,8 @@ public class MissionDTO {
     // 추가 필드 (미션 완료 여부)
     private boolean completed;
     private LocalDateTime completedAt;
+    
+    // 미션 실패 관련 필드
+    private boolean failed;
+    private LocalDateTime failedAt;
 }

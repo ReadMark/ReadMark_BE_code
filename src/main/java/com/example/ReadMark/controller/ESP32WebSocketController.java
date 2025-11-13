@@ -15,7 +15,7 @@ import java.util.Map;
 @RequestMapping("/api/esp32/ws")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS, RequestMethod.PATCH}, allowedHeaders = "*", allowCredentials = "false")
 public class ESP32WebSocketController {
 
     private final ESP32WebSocketHandler webSocketHandler;

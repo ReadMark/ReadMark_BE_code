@@ -3,6 +3,7 @@ package com.example.ReadMark.controller;
 import com.example.ReadMark.model.dto.BookPageDTO;
 import com.example.ReadMark.model.dto.VisionAnalysisResultDTO;
 import com.example.ReadMark.service.BookPageService;
+import com.example.ReadMark.service.BookService;
 import com.example.ReadMark.service.GoogleVisionService;
 import com.example.ReadMark.service.ReadingSessionService;
 import lombok.RequiredArgsConstructor;
@@ -20,18 +21,19 @@ import java.util.Map;
 @RequestMapping("/api/image")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS, RequestMethod.PATCH}, allowedHeaders = "*", allowCredentials = "false")
 public class ImageUploadController {
     
     private final GoogleVisionService visionService;
     private final ReadingSessionService readingSessionService;
     private final BookPageService bookPageService;
+    private final BookService bookService;
     
     /**
      * 프론트엔드용 복잡한 이미지 업로드 API
      * 사용자 ID, 책 ID 등 추가 정보를 받고 DB에 저장합니다.
      */
-    @PostMapping("/upload/simple")
+    @PostMapping(value = "/upload/simple", consumes = "multipart/form-data")
     public ResponseEntity<?> uploadImageSimple(@RequestParam("image") MultipartFile image) {
         Map<String, Object> response = new HashMap<>();
 
@@ -95,7 +97,7 @@ public class ImageUploadController {
         }
     }
 
-    @PostMapping("/upload")
+    @PostMapping(value = "/upload", consumes = "multipart/form-data")
     public ResponseEntity<?> uploadBookImage(
             @RequestParam("userId") Long userId,
             @RequestParam("bookId") Long bookId,
@@ -151,37 +153,44 @@ public class ImageUploadController {
                 }
             }
             
-            // BookPageService를 통해 페이지 생성 및 DB 저장
-            BookPageDTO bookPage = bookPageService.createBookPage(
-                userId, bookId, imageBytes, "Web Browser", parsedCaptureTime);
-            
-            // 독서 세션에 이미지 추가
-            readingSessionService.addImageToSession(userId, imageBytes, bookPage.getPageNumber());
-            
-            // OCR 결과를 서버 콘솔 로그에 출력
-            log.info("=== 프론트엔드 OCR 결과 ===");
-            log.info("사용자 ID: {}", userId);
-            log.info("책 ID: {}", bookId);
-            log.info("페이지 ID: {}", bookPage.getPageId());
-            log.info("페이지 번호: {}", bookPage.getPageNumber());
-            log.info("촬영 시간: {}", bookPage.getCapturedAt());
-            log.info("기기 정보: Web Browser");
-            log.info("================================");
-            
-            // 상세한 응답 구성
-            Map<String, Object> pageData = new HashMap<>();
-            pageData.put("pageId", bookPage.getPageId());
-            pageData.put("pageNumber", bookPage.getPageNumber());
-            pageData.put("capturedAt", bookPage.getCapturedAt());
-            
-            response.put("success", true);
-            response.put("message", "책 페이지가 성공적으로 저장되었습니다.");
-            response.put("page", pageData);
+            // BookPageService를 통해 페이지 생성 및 DB 저장 (예외처리 포함)
+            try {
+                BookPageDTO bookPage = bookPageService.createBookPage(
+                    userId, bookId, imageBytes, "Web Browser", parsedCaptureTime);
+                
+                // 독서 세션에 이미지 추가
+                readingSessionService.addImageToSession(userId, imageBytes, bookPage.getPageNumber());
+                
+                // OCR 결과를 서버 콘솔 로그에 출력
+                log.info("=== 프론트엔드 OCR 결과 ===");
+                log.info("사용자 ID: {}", userId);
+                log.info("책 ID: {}", bookId);
+                log.info("페이지 ID: {}", bookPage.getPageId());
+                log.info("페이지 번호: {}", bookPage.getPageNumber());
+                log.info("촬영 시간: {}", bookPage.getCapturedAt());
+                log.info("기기 정보: Web Browser");
+                log.info("================================");
+                
+                // 상세한 응답 구성
+                Map<String, Object> pageData = new HashMap<>();
+                pageData.put("pageId", bookPage.getPageId());
+                pageData.put("pageNumber", bookPage.getPageNumber());
+                pageData.put("capturedAt", bookPage.getCapturedAt());
+                
+                response.put("success", true);
+                response.put("message", "책 페이지가 성공적으로 저장되었습니다.");
+                response.put("page", pageData);
+                
+            } catch (RuntimeException e) {
+                // 페이지 인식 실패 또는 역행 상황 처리
+                response.put("success", false);
+                response.put("message", e.getMessage());
+                return ResponseEntity.badRequest().body(response);
+            }
             response.put("userId", userId);
             response.put("bookId", bookId);
             
-            log.info("프론트엔드 이미지 업로드 완료: 사용자 {}, 책 {}, 페이지 {}", 
-                    userId, bookId, bookPage.getPageNumber());
+            log.info("프론트엔드 이미지 업로드 완료: 사용자 {}, 책 {}", userId, bookId);
             
             return ResponseEntity.ok(response);
             
@@ -324,11 +333,21 @@ public class ImageUploadController {
         
         try {
             var pages = bookPageService.getBookPages(userId, bookId);
-            Long totalPages = bookPageService.getTotalPageCount(userId, bookId);
+            
+            // 책의 전체 페이지 수 조회 (books 테이블의 total_book)
+            Integer totalBook = null;
+            try {
+                var bookOpt = bookService.findById(bookId);
+                if (bookOpt.isPresent() && bookOpt.get().getTotalBook() != null) {
+                    totalBook = bookOpt.get().getTotalBook();
+                }
+            } catch (Exception e) {
+                log.warn("전체 페이지 수 조회 실패: userId={}, bookId={}", userId, bookId, e);
+            }
             
             response.put("success", true);
             response.put("pages", pages);
-            response.put("totalPages", totalPages);
+            response.put("totalBook", totalBook);
             response.put("count", pages.size());
             
             return ResponseEntity.ok(response);

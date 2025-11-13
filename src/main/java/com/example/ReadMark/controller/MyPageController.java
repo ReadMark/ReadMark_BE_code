@@ -21,7 +21,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/mypage")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*") // CORS 설정
+@CrossOrigin(origins = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS, RequestMethod.PATCH}, allowedHeaders = "*", allowCredentials = "false")
 public class MyPageController {
     
     private final MyPageService myPageService;
@@ -33,7 +33,8 @@ public class MyPageController {
             
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
-            response.put("stats", stats);
+            response.put("data", stats);  // stats를 data로 변경하여 통일
+            response.put("message", "사용자 통계 조회 성공");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             Map<String, Object> response = new HashMap<>();
@@ -50,7 +51,9 @@ public class MyPageController {
             
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
-            response.put("favoritePages", favoritePages);
+            response.put("favoritePages", favoritePages);  // 프론트엔드 호환성을 위해 원래 필드명 유지
+            response.put("data", favoritePages);  // 통일된 구조를 위해 data 필드도 추가
+            response.put("message", "즐겨찾기한 페이지 조회 성공");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             Map<String, Object> response = new HashMap<>();
@@ -126,7 +129,9 @@ public class MyPageController {
             
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
-            response.put("favoriteQuotes", favoriteQuotes);
+            response.put("favoriteQuotes", favoriteQuotes);  // 프론트엔드 호환성을 위해 원래 필드명 유지
+            response.put("data", favoriteQuotes);  // 통일된 구조를 위해 data 필드도 추가
+            response.put("message", "즐겨찾기한 문장 조회 성공");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             Map<String, Object> response = new HashMap<>();
@@ -136,7 +141,7 @@ public class MyPageController {
         }
     }
     
-    @PostMapping("/user/{userId}/favorite-quote")
+    @PostMapping(value = "/user/{userId}/favorite-quote", consumes = "multipart/form-data")
     public ResponseEntity<?> createFavoriteQuote(@PathVariable Long userId,
                                                @RequestParam Integer pageNumber,
                                                @RequestParam String content,
@@ -170,7 +175,7 @@ public class MyPageController {
         }
     }
     
-    @PutMapping("/favorite-quote/{favQuoteId}")
+    @PutMapping(value = "/favorite-quote/{favQuoteId}", consumes = "multipart/form-data")
     public ResponseEntity<?> updateFavoriteQuote(@PathVariable Long favQuoteId,
                                                @RequestParam(required = false) Integer pageNumber,
                                                @RequestParam(required = false) String content,

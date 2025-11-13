@@ -16,6 +16,7 @@ import java.util.Map;
 @RequestMapping("/api/stamps")
 @RequiredArgsConstructor
 @Slf4j
+@CrossOrigin(origins = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS, RequestMethod.PATCH}, allowedHeaders = "*", allowCredentials = "false")
 public class StampController {
     
     private final StampService stampService;
@@ -75,6 +76,41 @@ public class StampController {
     }
     
     /**
+     * 도장을 수동으로 생성합니다.
+     */
+    @PostMapping("/earn")
+    public ResponseEntity<?> earnStamp(@RequestParam Long userId, 
+                                      @RequestParam String date, 
+                                      @RequestParam Integer pagesRead) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            LocalDate earnedDate = LocalDate.parse(date);
+            StampDTO stamp = stampService.earnStamp(userId, earnedDate, pagesRead);
+            
+            if (stamp != null) {
+                response.put("success", true);
+                response.put("stamp", stamp);
+                response.put("message", "도장이 성공적으로 생성되었습니다.");
+                
+                log.info("수동 도장 생성 완료: 사용자 {}, 날짜 {}, 페이지 수 {}", userId, date, pagesRead);
+                
+                return ResponseEntity.ok(response);
+            } else {
+                response.put("success", false);
+                response.put("message", "도장 생성 실패: 이미 해당 날짜에 도장이 있거나 20페이지 미만입니다.");
+                return ResponseEntity.badRequest().body(response);
+            }
+            
+        } catch (Exception e) {
+            log.error("수동 도장 생성 중 오류 발생: 사용자 {}, 날짜 {}", userId, date, e);
+            response.put("success", false);
+            response.put("message", "도장 생성 실패: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+    
+    /**
      * 특정 기간의 도장 조회
      */
     @GetMapping("/user/{userId}/period")
@@ -129,4 +165,13 @@ public class StampController {
             return ResponseEntity.internalServerError().body(response);
         }
     }
+    
+    /**
+     * OPTIONS 요청 처리 - CORS Preflight
+     */
+    @RequestMapping(value = "/**", method = RequestMethod.OPTIONS)
+    public ResponseEntity<?> handleOptions() {
+        return ResponseEntity.ok().build();
+    }
+
 }

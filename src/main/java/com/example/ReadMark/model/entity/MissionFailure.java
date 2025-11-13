@@ -1,6 +1,5 @@
 package com.example.ReadMark.model.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -9,15 +8,14 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "mission_completions")
+@Table(name = "mission_failures")
 @Getter
 @Setter
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-public class MissionCompletion {
+public class MissionFailure {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long completionId;
+    private Long failureId;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -28,10 +26,13 @@ public class MissionCompletion {
     private Mission mission;
     
     @Column(nullable = false)
-    private LocalDate completedDate;
+    private LocalDate failureDate;
     
     @Column(nullable = false)
-    private LocalDateTime completedAt;
+    private LocalDateTime failedAt;
+    
+    @Column(columnDefinition = "TEXT")
+    private String failureReason; // 실패 사유 (선택사항)
     
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

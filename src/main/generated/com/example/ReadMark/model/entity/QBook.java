@@ -36,6 +36,8 @@ public class QBook extends EntityPathBase<Book> {
 
     public final StringPath title = createString("title");
 
+    public final NumberPath<Integer> totalBook = createNumber("totalBook", Integer.class);
+
     public final ListPath<UserBook, QUserBook> userBooks = this.<UserBook, QUserBook>createList("userBooks", UserBook.class, QUserBook.class, PathInits.DIRECT2);
 
     public QBook(String variable) {

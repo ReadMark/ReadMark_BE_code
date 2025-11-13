@@ -376,6 +376,144 @@
 #### **미션 완료**
 - **URL:** `POST /api/missions/{missionId}/complete?userId=4`
 
+#### **미션 실패 기록 저장**
+- **URL:** `POST /api/missions/{missionId}/fail?userId={userId}&failureReason={reason}`
+- **파라미터:**
+  - `userId` (필수): 사용자 ID
+  - `failureReason` (선택): 실패 사유
+- **응답:**
+```json
+{
+    "success": true,
+    "message": "미션 실패 기록이 저장되었습니다.",
+    "failedMissionId": 1
+}
+```
+
+#### **사용자 미션 실패 기록 조회**
+- **URL:** `GET /api/missions/user/{userId}/failures`
+- **응답:**
+```json
+{
+    "success": true,
+    "failures": [
+        {
+            "failureId": 1,
+            "user": {
+                "userId": 4,
+                "username": "user123"
+            },
+            "mission": {
+                "missionId": 1,
+                "title": "10페이지 읽기"
+            },
+            "failureDate": "2025-01-15",
+            "failedAt": "2025-01-15T14:30:00",
+            "failureReason": "시간 부족",
+            "createdAt": "2025-01-15T14:30:00"
+        }
+    ],
+    "count": 1,
+    "message": "미션 실패 기록 조회 성공"
+}
+```
+
+#### **기간별 미션 실패 기록 조회**
+- **URL:** `GET /api/missions/user/{userId}/failures/date-range?startDate=2025-01-01&endDate=2025-01-31`
+- **파라미터:**
+  - `startDate` (필수): 시작 날짜 (YYYY-MM-DD)
+  - `endDate` (필수): 종료 날짜 (YYYY-MM-DD)
+- **응답:**
+```json
+{
+    "success": true,
+    "failures": [...],
+    "count": 3,
+    "startDate": "2025-01-01",
+    "endDate": "2025-01-31",
+    "message": "기간별 미션 실패 기록 조회 성공"
+}
+```
+
+#### **특정 날짜 미션 기록 조회**
+- **URL:** `GET /api/missions/user/{userId}/date/{date}`
+- **파라미터:**
+  - `userId` (필수): 사용자 ID
+  - `date` (필수): 조회할 날짜 (YYYY-MM-DD)
+- **응답:**
+```json
+{
+    "success": true,
+    "data": {
+        "date": "2025-01-15",
+        "completedMissions": [
+            {
+                "completionId": 1,
+                "user": {...},
+                "mission": {...},
+                "completedDate": "2025-01-15",
+                "completedAt": "2025-01-15T14:30:00"
+            }
+        ],
+        "failedMissions": [
+            {
+                "failureId": 1,
+                "user": {...},
+                "mission": {...},
+                "failureDate": "2025-01-15",
+                "failedAt": "2025-01-15T16:00:00",
+                "failureReason": "시간 부족"
+            }
+        ],
+        "completedCount": 1,
+        "failedCount": 1,
+        "totalMissions": 3,
+        "missionStatusList": [
+            {
+                "missionId": 1,
+                "title": "10페이지 읽기",
+                "description": "오늘 10페이지를 읽어보세요",
+                "type": "PAGES_READ",
+                "targetValue": 10,
+                "unit": "페이지",
+                "reward": "10",
+                "isCompleted": true,
+                "isFailed": false,
+                "status": "COMPLETED",
+                "completedAt": "2025-01-15T14:30:00"
+            },
+            {
+                "missionId": 2,
+                "title": "30분 독서",
+                "description": "오늘 30분간 독서하세요",
+                "type": "READING_TIME",
+                "targetValue": 30,
+                "unit": "분",
+                "reward": "15",
+                "isCompleted": false,
+                "isFailed": true,
+                "status": "FAILED",
+                "failedAt": "2025-01-15T16:00:00",
+                "failureReason": "시간 부족"
+            },
+            {
+                "missionId": 3,
+                "title": "책 1권 완독",
+                "description": "오늘 책 1권을 완독하세요",
+                "type": "BOOKS_READ",
+                "targetValue": 1,
+                "unit": "권",
+                "reward": "50",
+                "isCompleted": false,
+                "isFailed": false,
+                "status": "PENDING"
+            }
+        ]
+    },
+    "message": "날짜별 미션 기록 조회 성공"
+}
+```
+
 #### **미션 진행 현황**
 - **URL:** `GET /api/missions/user/{userId}/progress`
 

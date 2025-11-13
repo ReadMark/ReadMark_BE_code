@@ -10,4 +10,5 @@ public class BookDTO {
     private String title;
     private String author;
     private String coverImageUrl;
+    private Integer totalBook;  // 책의 총 페이지 수
 }

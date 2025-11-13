@@ -2,6 +2,7 @@ package com.example.ReadMark.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +24,9 @@ public class ESP32ReadingSessionService {
     private final Map<String, ReadingSession> activeSessions = new ConcurrentHashMap<>();
     private final Map<String, Long> sessionBookIds = new ConcurrentHashMap<>(); // 세션별 book_id 저장
     private final Map<String, Long> sessionUserIds = new ConcurrentHashMap<>(); // 세션별 user_id 저장
+    
+    // 세션 타임아웃 설정 (30분)
+    private static final int SESSION_TIMEOUT_MINUTES = 30;
     
     /**
      * 현재 페이지 업데이트
@@ -123,6 +127,58 @@ public class ESP32ReadingSessionService {
     }
     
     /**
+     * 가장 최근에 업데이트된 세션의 book_id와 user_id 조회
+     */
+    public Map<String, Long> getLatestSessionInfo() {
+        Map<String, Long> result = new HashMap<>();
+        
+        if (activeSessions.isEmpty()) {
+            return result;
+        }
+        
+        // 가장 최근에 업데이트된 세션 찾기
+        String latestSessionId = null;
+        LocalDateTime latestUpdateTime = null;
+        
+        for (Map.Entry<String, ReadingSession> entry : activeSessions.entrySet()) {
+            ReadingSession session = entry.getValue();
+            if (session.getLastUpdateTime() != null) {
+                if (latestUpdateTime == null || session.getLastUpdateTime().isAfter(latestUpdateTime)) {
+                    latestUpdateTime = session.getLastUpdateTime();
+                    latestSessionId = entry.getKey();
+                }
+            }
+        }
+        
+        // 가장 최근 업데이트 시간이 없으면 가장 최근에 시작된 세션 사용
+        if (latestSessionId == null) {
+            for (Map.Entry<String, ReadingSession> entry : activeSessions.entrySet()) {
+                ReadingSession session = entry.getValue();
+                if (session.getStartTime() != null) {
+                    if (latestUpdateTime == null || session.getStartTime().isAfter(latestUpdateTime)) {
+                        latestUpdateTime = session.getStartTime();
+                        latestSessionId = entry.getKey();
+                    }
+                }
+            }
+        }
+        
+        if (latestSessionId != null) {
+            Long bookId = sessionBookIds.get(latestSessionId);
+            Long userId = sessionUserIds.get(latestSessionId);
+            
+            if (bookId != null) {
+                result.put("bookId", bookId);
+            }
+            if (userId != null) {
+                result.put("userId", userId);
+            }
+        }
+        
+        return result;
+    }
+
+    /**
      * 모든 활성 세션의 book_id 조회 (ESP32 1개인 경우용)
      */
     public Map<String, Long> getAllBookIds() {
@@ -134,6 +190,28 @@ public class ESP32ReadingSessionService {
      */
     public Map<String, Long> getAllUserIds() {
         return new HashMap<>(sessionUserIds);
+    }
+
+    /**
+     * 활성 WebSocket 세션 수 (관리 중인 세션 객체 수)
+     */
+    public int getActiveSessionCount() {
+        return activeSessions.size();
+    }
+
+    /**
+     * userId와 bookId가 모두 설정된 ‘완전 매핑’ 세션 수
+     */
+    public int getFullyBoundSessionCount() {
+        int count = 0;
+        for (String sessionId : activeSessions.keySet()) {
+            Long bookId = sessionBookIds.get(sessionId);
+            Long userId = sessionUserIds.get(sessionId);
+            if (bookId != null && userId != null) {
+                count++;
+            }
+        }
+        return count;
     }
 
     /**
@@ -154,6 +232,82 @@ public class ESP32ReadingSessionService {
         log.info("새로운 독서 세션 시작: sessionId={}, bookId={}, userId={}", sessionId, bookId, userId);
     }
     
+    /**
+     * 주기적으로 만료된 세션을 정리합니다 (5분마다 실행)
+     */
+    @Scheduled(fixedRate = 300000) // 5분 = 300,000ms
+    public void cleanupExpiredSessions() {
+        LocalDateTime now = LocalDateTime.now();
+        int cleanedCount = 0;
+        
+        // 만료된 세션 찾기
+        for (Map.Entry<String, ReadingSession> entry : activeSessions.entrySet()) {
+            String sessionId = entry.getKey();
+            ReadingSession session = entry.getValue();
+            
+            if (session.getLastUpdateTime() != null) {
+                long minutesSinceLastUpdate = java.time.Duration.between(session.getLastUpdateTime(), now).toMinutes();
+                
+                if (minutesSinceLastUpdate > SESSION_TIMEOUT_MINUTES) {
+                    // 만료된 세션 제거
+                    activeSessions.remove(sessionId);
+                    sessionBookIds.remove(sessionId);
+                    sessionUserIds.remove(sessionId);
+                    cleanedCount++;
+                    
+                    log.info("만료된 세션 정리: sessionId={}, 마지막 업데이트={}분 전", 
+                            sessionId, minutesSinceLastUpdate);
+                }
+            }
+        }
+        
+        if (cleanedCount > 0) {
+            log.info("세션 정리 완료: {}개 세션 제거, 현재 활성 세션: {}개", 
+                    cleanedCount, activeSessions.size());
+        }
+    }
+    
+    /**
+     * 세션 상태를 확인합니다
+     */
+    public Map<String, Object> getSessionStatus() {
+        Map<String, Object> status = new HashMap<>();
+        status.put("activeSessions", activeSessions.size());
+        status.put("sessionBookIds", sessionBookIds.size());
+        status.put("sessionUserIds", sessionUserIds.size());
+        status.put("timestamp", LocalDateTime.now());
+        
+        // 세션 상세 정보
+        Map<String, Object> sessionDetails = new HashMap<>();
+        for (Map.Entry<String, ReadingSession> entry : activeSessions.entrySet()) {
+            String sessionId = entry.getKey();
+            ReadingSession session = entry.getValue();
+            
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("deviceId", session.getDeviceId());
+            detail.put("bookId", session.getBookId());
+            detail.put("userId", session.getUserId());
+            detail.put("currentPage", session.getCurrentPage());
+            detail.put("lastUpdateTime", session.getLastUpdateTime());
+            
+            sessionDetails.put(sessionId, detail);
+        }
+        status.put("sessionDetails", sessionDetails);
+        
+        return status;
+    }
+    
+    /**
+     * 모든 세션을 강제로 정리합니다 (서버 재시작 시 사용)
+     */
+    public void clearAllSessions() {
+        int sessionCount = activeSessions.size();
+        activeSessions.clear();
+        sessionBookIds.clear();
+        sessionUserIds.clear();
+        
+        log.warn("모든 세션 강제 정리: {}개 세션 제거", sessionCount);
+    }
     
     /**
      * 독서 세션 정보 클래스

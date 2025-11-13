@@ -22,4 +22,6 @@ public interface UserBookRepository extends JpaRepository<UserBook, Long>, UserB
      * 사용자의 모든 UserBook 관계를 조회합니다.
      */
     List<UserBook> findByUser_UserId(Long userId);
+
+    Optional<Object> findByBook_BookId(Long bookId);
 }

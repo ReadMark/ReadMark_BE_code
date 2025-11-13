@@ -167,4 +167,11 @@ public class UserService {
         user.setProfileImageUrl(null);
         userRepository.save(user);
     }
+
+    // UserService.java
+    public User getUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElse(null); // 존재하지 않으면 null 반환
+    }
+
 }

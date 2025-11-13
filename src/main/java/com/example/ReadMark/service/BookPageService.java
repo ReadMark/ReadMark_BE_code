@@ -1,12 +1,16 @@
 package com.example.ReadMark.service;
 
+import com.example.ReadMark.model.dto.BookDTO;
 import com.example.ReadMark.model.dto.BookPageDTO;
+import com.example.ReadMark.model.dto.UserBookDTO;
 import com.example.ReadMark.model.dto.VisionAnalysisResultDTO;
 import com.example.ReadMark.model.entity.Book;
 import com.example.ReadMark.model.entity.BookPage;
 import com.example.ReadMark.model.entity.User;
+import com.example.ReadMark.model.entity.UserBook;
 import com.example.ReadMark.repository.BookPageRepository;
 import com.example.ReadMark.repository.BookRepository;
+import com.example.ReadMark.repository.UserBookRepository;
 import com.example.ReadMark.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,37 +27,52 @@ import java.util.stream.Collectors;
 @Slf4j
 @Transactional
 public class BookPageService {
-    
+
     private final BookPageRepository bookPageRepository;
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
     private final GoogleVisionService visionService;
-    
+    private final UserBookRepository userBookRepository; // 추가
+
     /**
      * 새로운 책 페이지를 생성하고 저장합니다.
      */
-    public BookPageDTO createBookPage(Long userId, Long bookId, byte[] imageBytes, 
-                                    String deviceInfo, LocalDateTime captureTime) {
+    public BookPageDTO createBookPage(Long userId, Long bookId, byte[] imageBytes,
+                                      String deviceInfo, LocalDateTime captureTime) {
         try {
             // 사용자와 책 정보 조회
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
             Book book = bookRepository.findById(bookId)
                     .orElseThrow(() -> new RuntimeException("책을 찾을 수 없습니다."));
-            
+
             // Google Vision API로 텍스트 추출
             VisionAnalysisResultDTO visionResult = visionService.extractTextFromImage(imageBytes);
-            
+
             if (!visionResult.isSuccess()) {
                 throw new RuntimeException("텍스트 추출 실패: " + visionResult.getErrorMessage());
             }
-            
-            // 페이지 번호 추출 (단순화)
+
+            // 페이지 번호 추출 및 검증
             Integer pageNumber = visionResult.getEstimatedPageNumber();
-            if (pageNumber == null) {
-                pageNumber = 1; // 기본값으로 단순화
+            if (pageNumber == null || pageNumber == -1) {
+                // 페이지 인식 실패 시 재촬영 요청
+                throw new RuntimeException("페이지 번호를 인식할 수 없습니다. 더 명확한 이미지로 재촬영해주세요.");
             }
             
+            // 이전 페이지와 비교하여 역행 검증
+            Optional<BookPage> lastPage = bookPageRepository
+                    .findByUser_UserIdAndBook_BookIdOrderByCapturedAtDesc(userId, bookId)
+                    .stream()
+                    .findFirst();
+            
+            if (lastPage.isPresent()) {
+                int lastPageNumber = lastPage.get().getPageNumber();
+                if (pageNumber < lastPageNumber) {
+                    throw new RuntimeException("이전 페이지(" + lastPageNumber + ")보다 작은 페이지(" + pageNumber + ")입니다. 더 큰 페이지 번호로 재촬영해주세요.");
+                }
+            }
+
             // 중복 페이지 확인
             Optional<BookPage> existingPage = bookPageRepository
                     .findByUser_UserIdAndBook_BookIdAndPageNumber(userId, bookId, pageNumber);
@@ -61,39 +80,39 @@ public class BookPageService {
                 log.warn("페이지 {}가 이미 존재합니다. 업데이트합니다.", pageNumber);
                 return updateExistingPage(existingPage.get(), imageBytes, visionResult, deviceInfo, captureTime);
             }
-            
+
             // 새 페이지 생성
             BookPage bookPage = new BookPage();
             bookPage.setUser(user);
             bookPage.setBook(book);
             bookPage.setPageNumber(pageNumber);
             bookPage.setCapturedAt(captureTime != null ? captureTime : LocalDateTime.now());
-            
+
             BookPage savedPage = bookPageRepository.save(bookPage);
             log.info("새 페이지 생성 완료: 사용자 {}, 책 {}, 페이지 {}", userId, bookId, pageNumber);
-            
+
             return convertToDTO(savedPage);
-            
+
         } catch (Exception e) {
             log.error("책 페이지 생성 실패: 사용자 {}, 책 {}", userId, bookId, e);
             throw new RuntimeException("책 페이지 생성 실패: " + e.getMessage());
         }
     }
-    
+
     /**
      * 기존 페이지를 업데이트합니다.
      */
-    private BookPageDTO updateExistingPage(BookPage existingPage, byte[] imageBytes, 
-                                         VisionAnalysisResultDTO visionResult, 
-                                         String deviceInfo, LocalDateTime captureTime) {
+    private BookPageDTO updateExistingPage(BookPage existingPage, byte[] imageBytes,
+                                           VisionAnalysisResultDTO visionResult,
+                                           String deviceInfo, LocalDateTime captureTime) {
         existingPage.setCapturedAt(captureTime != null ? captureTime : LocalDateTime.now());
-        
+
         BookPage updatedPage = bookPageRepository.save(existingPage);
         log.info("기존 페이지 업데이트 완료: 페이지 ID {}", updatedPage.getPageId());
-        
+
         return convertToDTO(updatedPage);
     }
-    
+
     /**
      * 사용자와 책별로 페이지 목록을 조회합니다.
      */
@@ -103,7 +122,7 @@ public class BookPageService {
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
-    
+
     /**
      * 특정 페이지를 조회합니다.
      */
@@ -112,7 +131,8 @@ public class BookPageService {
                 .orElseThrow(() -> new RuntimeException("페이지를 찾을 수 없습니다."));
         return convertToDTO(page);
     }
-    
+
+
     /**
      * 페이지 범위로 조회합니다.
      */
@@ -122,7 +142,7 @@ public class BookPageService {
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
-    
+
     /**
      * 최근 페이지들을 조회합니다.
      */
@@ -133,25 +153,25 @@ public class BookPageService {
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
-    
+
     /**
      * 페이지를 삭제합니다.
      */
     public void deleteBookPage(Long userId, Long bookId, Integer pageNumber) {
         BookPage page = bookPageRepository.findByUser_UserIdAndBook_BookIdAndPageNumber(userId, bookId, pageNumber)
                 .orElseThrow(() -> new RuntimeException("페이지를 찾을 수 없습니다."));
-        
+
         bookPageRepository.delete(page);
         log.info("페이지 삭제 완료: 사용자 {}, 책 {}, 페이지 {}", userId, bookId, pageNumber);
     }
-    
+
     /**
      * 사용자의 총 페이지 수를 조회합니다.
      */
     public Long getTotalPageCount(Long userId, Long bookId) {
         return bookPageRepository.countByUserIdAndBookId(userId, bookId);
     }
-    
+
     /**
      * BookPage를 DTO로 변환합니다.
      */
@@ -165,25 +185,58 @@ public class BookPageService {
         dto.setCreatedAt(bookPage.getCreatedAt());
         return dto;
     }
-    
+
     /**
      * BookPageDTO를 저장
      */
     public BookPage saveBookPage(BookPageDTO bookPageDTO) {
         BookPage bookPage = new BookPage();
-        
+
         // Book과 User 엔티티 조회
         Book book = bookRepository.findById(bookPageDTO.getBookId())
                 .orElseThrow(() -> new RuntimeException("책을 찾을 수 없습니다: " + bookPageDTO.getBookId()));
         User user = userRepository.findById(bookPageDTO.getUserId())
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다: " + bookPageDTO.getUserId()));
-        
+
         // BookPage 엔티티 설정
         bookPage.setBook(book);
         bookPage.setUser(user);
         bookPage.setPageNumber(bookPageDTO.getPageNumber());
         bookPage.setCapturedAt(bookPageDTO.getCapturedAt() != null ? bookPageDTO.getCapturedAt() : LocalDateTime.now());
-        
+
         return bookPageRepository.save(bookPage);
     }
+
+
+    // 기존 createBookPage 등 기존 메서드들 그대로 유지
+
+    /**
+     * bookId로 UserBookDTO 조회
+     */
+    public UserBookDTO getUserBookId(Long bookId) {
+        UserBook userBook = (UserBook) userBookRepository.findByBook_BookId(bookId)
+                .orElseThrow(() -> new RuntimeException("해당 책 정보를 찾을 수 없습니다: " + bookId));
+        return convertToUserBookDTO(userBook);
+    }
+
+    /**
+     * UserBook -> UserBookDTO 변환
+     */
+    private UserBookDTO convertToUserBookDTO(UserBook userBook) {
+        UserBookDTO dto = new UserBookDTO();
+        dto.setUserBookId(userBook.getUserBookId());
+
+        BookDTO bookDTO = new BookDTO();
+        bookDTO.setBookId(userBook.getBook().getBookId());
+        bookDTO.setTitle(userBook.getBook().getTitle()); // Book 엔티티에 맞게 필드 추가
+        bookDTO.setTotalBook(userBook.getBook().getTotalBook());
+        dto.setBook(bookDTO);
+
+        dto.setStatus(String.valueOf(userBook.getStatus()));
+        dto.setCurrentPage(userBook.getCurrentPage());
+        dto.setCreatedAt(userBook.getCreatedAt());
+        dto.setUpdatedAt(userBook.getUpdatedAt());
+        return dto;
+    }
 }
+

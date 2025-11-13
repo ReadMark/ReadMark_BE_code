@@ -21,8 +21,11 @@ public interface BookPageRepositoryCustom {
     // 캘린더용 메서드 추가
     List<BookPage> findByUser_UserIdAndCapturedAtBetween(Long userId, LocalDateTime startDate, LocalDateTime endDate);
     
-    // 일별 페이지 수 계산용 메서드
+    // 일별 페이지 수 계산용 메서드 (기존 - 사진 개수)
     int countByUserIdAndDate(Long userId, java.time.LocalDate date);
+    
+    // 실제 읽은 페이지 수 계산용 메서드 (새로운 - 페이지 번호 차이)
+    int calculatePagesReadByUserIdAndDate(Long userId, java.time.LocalDate date);
     
     // 총 읽은 날 수 계산용 메서드 (BookPage 기반)
     Long countDistinctReadingDaysByUserId(Long userId);

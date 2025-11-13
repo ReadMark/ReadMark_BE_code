@@ -25,6 +25,8 @@ public class Book {
     private String author;
     private String publisher;
     private String coverImageUrl;
+    @Column(name = "total_book")
+    private Integer totalBook;  // 책의 총 페이지 수
     private LocalDate publishedAt;
     private LocalDateTime createdAt;
 

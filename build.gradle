@@ -1,6 +1,6 @@
 plugins {
 	id 'java'
-	id 'org.springframework.boot' version '3.3.0'
+	id 'org.springframework.boot' version '3.2.5'
 	id 'io.spring.dependency-management' version '1.1.6'
 }
 
@@ -10,7 +10,7 @@ description = 'ReadMark Backend Project'
 
 java {
 	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
+		languageVersion = JavaLanguageVersion.of(17)
 	}
 }
 
@@ -54,6 +54,13 @@ dependencies {
 
 	// 웹소켓 의존성 추가
 	implementation 'org.springframework.boot:spring-boot-starter-websocket'
+	
+	// Tomcat 버전 명시적 설정
+	implementation 'org.springframework.boot:spring-boot-starter-tomcat'
+	
+	// Logback 의존성 명시적 추가
+	implementation 'ch.qos.logback:logback-classic:1.4.14'
+	implementation 'ch.qos.logback:logback-core:1.4.14'
 }
 
 // QueryDSL 설정
